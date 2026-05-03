@@ -19,7 +19,9 @@ import {
   Zap,
   Save,
   PlusCircle,
-  History
+  History,
+  Database,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -68,6 +70,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
   
   const [isInitialized, setIsInitialized] = useState(false);
   const [marketNoise, setMarketNoise] = useState(1);
+  const [isProvisioning, setIsProvisioning] = useState(false);
 
   const [newTransaction, setNewTransaction] = useState({
     type: "Deposit",
@@ -191,6 +194,68 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
       title: "Yield Protocol Updated",
       description: `Automated ${yieldConfig.assetType} profit of $${yieldConfig.amount}/day has been ${yieldConfig.enabled ? 'activated' : 'deactivated'}.`,
     });
+  };
+
+  const handleProvisionAssets = async () => {
+    if (!firestore || !investorId) return;
+    setIsProvisioning(true);
+
+    const type = yieldConfig.assetType;
+    const colRef = collection(firestore, "investorProfiles", investorId, "investments");
+
+    const assetData: Record<string, Array<{name: string, symbol: string, price: number}>> = {
+      "Crypto": [
+        { name: "Bitcoin", symbol: "BTC", price: 64200 },
+        { name: "Ethereum", symbol: "ETH", price: 3450 },
+        { name: "Solana", symbol: "SOL", price: 145 }
+      ],
+      "Stock": [
+        { name: "Apple Inc.", symbol: "AAPL", price: 189 },
+        { name: "Nvidia Corp.", symbol: "NVDA", price: 875 },
+        { name: "Tesla Inc.", symbol: "TSLA", price: 175 }
+      ],
+      "Forex": [
+        { name: "EUR/USD", symbol: "EURUSD", price: 1.08 },
+        { name: "GBP/USD", symbol: "GBPUSD", price: 1.26 },
+        { name: "USD/JPY", symbol: "USDJPY", price: 151 }
+      ],
+      "ETF": [
+        { name: "S&P 500 ETF", symbol: "VOO", price: 478 },
+        { name: "Nasdaq 100 ETF", symbol: "QQQ", price: 445 },
+        { name: "Dividend Aristocrats", symbol: "SCHD", price: 78 }
+      ],
+      "Bond": [
+        { name: "US 10Y Treasury", symbol: "US10Y", price: 98 },
+        { name: "Corporate AAA Bond", symbol: "CORP", price: 102 }
+      ]
+    };
+
+    const selected = assetData[type] || assetData["Stock"];
+
+    selected.forEach((asset) => {
+      addDocumentNonBlocking(colRef, {
+        investorId,
+        name: asset.name,
+        symbol: asset.symbol,
+        type: type,
+        quantity: Math.floor(Math.random() * 50) + 1,
+        purchasePricePerUnit: asset.price,
+        currentMarketPricePerUnit: asset.price,
+        currency: "USD",
+        purchaseDate: serverTimestamp(),
+        lastPriceUpdate: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    });
+
+    setTimeout(() => {
+      setIsProvisioning(false);
+      toast({
+        title: "Portfolio Provisioned",
+        description: `Neural Link loaded ${selected.length} ${type} assets into the investor's distribution.`,
+      });
+    }, 1500);
   };
 
   const handleAddTransaction = () => {
@@ -328,62 +393,99 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             </TabsList>
 
             <TabsContent value="yield" className="space-y-6">
-              <Card className="w-full border-border bg-card shadow-none">
-                <CardHeader className="bg-muted/10 border-b">
-                  <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-primary" /> Algorithmic Yield Protocol
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest">Active Status</Label>
-                      <p className="text-[9px] text-muted-foreground uppercase">Enable ladder-climbing growth protocol</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="w-full border-border bg-card shadow-none">
+                  <CardHeader className="bg-muted/10 border-b">
+                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary" /> Algorithmic Yield Protocol
                     </div>
-                    <Switch 
-                      checked={yieldConfig.enabled} 
-                      onCheckedChange={(checked) => setYieldConfig({...yieldConfig, enabled: checked})} 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest">Daily Target ($)</Label>
-                    <Input 
-                      type="number" 
-                      value={yieldConfig.amount} 
-                      onChange={(e) => setYieldConfig({...yieldConfig, amount: e.target.value})}
-                      className="bg-background border-border font-mono text-sm"
-                      placeholder="1200.00"
-                    />
-                  </div>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest">Active Status</Label>
+                        <p className="text-[9px] text-muted-foreground uppercase">Enable ladder-climbing growth protocol</p>
+                      </div>
+                      <Switch 
+                        checked={yieldConfig.enabled} 
+                        onCheckedChange={(checked) => setYieldConfig({...yieldConfig, enabled: checked})} 
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest">Daily Target ($)</Label>
+                      <Input 
+                        type="number" 
+                        value={yieldConfig.amount} 
+                        onChange={(e) => setYieldConfig({...yieldConfig, amount: e.target.value})}
+                        className="bg-background border-border font-mono text-sm"
+                        placeholder="1200.00"
+                      />
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest">Reference Classification</Label>
-                    <Select 
-                      value={yieldConfig.assetType} 
-                      onValueChange={(val) => setYieldConfig({...yieldConfig, assetType: val})}
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest">Reference Classification</Label>
+                      <Select 
+                        value={yieldConfig.assetType} 
+                        onValueChange={(val) => setYieldConfig({...yieldConfig, assetType: val})}
+                      >
+                        <SelectTrigger className="bg-background border-border">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Crypto">Cryptocurrency</SelectItem>
+                          <SelectItem value="Stock">Equities</SelectItem>
+                          <SelectItem value="Forex">Currency Markets</SelectItem>
+                          <SelectItem value="Bond">Fixed Income</SelectItem>
+                          <SelectItem value="ETF">Index Funds</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Button 
+                      onClick={handleSaveYieldConfig}
+                      className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px]"
                     >
-                      <SelectTrigger className="bg-background border-border">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Crypto">Cryptocurrency</SelectItem>
-                        <SelectItem value="Stock">Equities</SelectItem>
-                        <SelectItem value="Forex">Currency Markets</SelectItem>
-                        <SelectItem value="Bond">Fixed Income</SelectItem>
-                        <SelectItem value="ETF">Index Funds</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      <Save className="h-3 w-3 mr-2" /> Commit Configuration
+                    </Button>
+                  </CardContent>
+                </Card>
 
-                  <Button 
-                    onClick={handleSaveYieldConfig}
-                    className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px]"
-                  >
-                    <Save className="h-3 w-3 mr-2" /> Commit Configuration
-                  </Button>
-                </CardContent>
-              </Card>
+                <Card className="w-full border-border bg-card shadow-none border-dashed border-primary/30">
+                  <CardHeader className="bg-primary/5 border-b border-primary/10">
+                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-primary">
+                      <Database className="h-4 w-4" /> Neural Asset Provisioning
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="p-4 bg-muted/20 border border-border/50 rounded-sm space-y-2">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest">Portfolio Jumpstart</h4>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">
+                        Generate a standard high-fidelity holding portfolio based on the selected classification. This will populate the investor's "Asset Distribution" and "Holding Auditor" sections.
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-col gap-3">
+                      <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter italic">
+                        TARGETING: {yieldConfig.assetType.toUpperCase()} NETWORK NODES
+                      </div>
+                      <Button 
+                        onClick={handleProvisionAssets}
+                        disabled={isProvisioning}
+                        variant="outline"
+                        className="w-full border-primary/50 text-primary hover:bg-primary/10 font-bold uppercase tracking-widest text-[10px]"
+                      >
+                        {isProvisioning ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                        ) : (
+                          <Database className="h-3 w-3 mr-2" />
+                        )}
+                        Provision Initial Holdings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="ledger" className="space-y-6">
