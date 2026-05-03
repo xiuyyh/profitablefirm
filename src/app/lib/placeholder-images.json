@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "hero-dashboard",
+      "description": "Professional financial dashboard concept",
+      "imageUrl": "https://picsum.photos/seed/finance1/1200/800",
+      "imageHint": "finance dashboard"
+    },
+    {
+      "id": "investor-profile",
+      "description": "Investor profile placeholder",
+      "imageUrl": "https://picsum.photos/seed/investor/400/400",
+      "imageHint": "investor portrait"
+    }
+  ]
+}
