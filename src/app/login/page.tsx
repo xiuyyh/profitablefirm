@@ -131,7 +131,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 relative">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,242,255,0.05),transparent_70%)] lg:hidden" />
         
-        <div className="w-full max-w-[420px] space-y-8 relative z-10 animate-in fade-in slide-in-from-right-4 duration-700">
+        <div className="w-full max-[420px] space-y-8 relative z-10 animate-in fade-in slide-in-from-right-4 duration-700">
           <div className="flex flex-col items-center space-y-4 lg:hidden">
             <div className="relative rounded-sm border border-primary/30 bg-primary/10 p-4 glow-primary">
               <Cpu className="h-8 w-8 text-primary glow-text" />

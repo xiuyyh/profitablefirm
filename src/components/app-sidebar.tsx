@@ -1,4 +1,3 @@
-
 "use client";
 
 import { 
@@ -45,7 +44,7 @@ const adminNav = [
   { icon: ShieldAlert, label: "System Overview", href: "/admin" },
   { icon: Users, label: "Investor Profiles", href: "/admin" },
   { icon: Globe, label: "Global Ledger", href: "/admin/ledger" },
-  { icon: Activity, label: "Audit Logs", href: "#" }, // Placeholder for future feature
+  { icon: Activity, label: "Audit Logs", href: "#" },
 ];
 
 export function AppSidebar() {
@@ -71,7 +70,7 @@ export function AppSidebar() {
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border">
       <SidebarHeader className="p-6">
-        <div className="flex flex-col gap-0.5 group-data-[state=collapsed]:hidden">
+        <div className="flex flex-col gap-0.5 group-data-[state=collapsed]:hidden overflow-hidden whitespace-nowrap">
           <span className="text-[10px] font-black tracking-[0.3em] text-primary/70 uppercase">
             {isAdmin ? "Admin Terminal" : "Investor Terminal"}
           </span>
@@ -84,8 +83,8 @@ export function AppSidebar() {
       <SidebarContent className="px-3">
         {isAdmin && (
           <div className="mb-6">
-            <div className="px-2 mb-2">
-              <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-destructive group-data-[state=collapsed]:hidden">
+            <div className="px-2 mb-2 group-data-[state=collapsed]:hidden">
+              <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-destructive">
                 Command & Control
               </span>
             </div>
@@ -110,12 +109,12 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
-            <SidebarSeparator className="my-6 opacity-20 border-destructive/20" />
+            <SidebarSeparator className="my-6 opacity-20 border-destructive/20 group-data-[state=collapsed]:hidden" />
           </div>
         )}
 
-        <div className="px-2 mb-2">
-          <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground group-data-[state=collapsed]:hidden">
+        <div className="px-2 mb-2 group-data-[state=collapsed]:hidden">
+          <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
             Portfolio Management
           </span>
         </div>
@@ -143,8 +142,8 @@ export function AppSidebar() {
 
         <SidebarSeparator className="my-6 opacity-10" />
         
-        <div className="px-2 mb-2">
-          <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground group-data-[state=collapsed]:hidden">
+        <div className="px-2 mb-2 group-data-[state=collapsed]:hidden">
+          <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
             Security & Identity
           </span>
         </div>

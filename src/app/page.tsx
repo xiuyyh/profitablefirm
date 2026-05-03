@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
@@ -227,7 +226,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4 flex-1">
             <SidebarTrigger />
             <div className="h-4 w-px bg-border mx-2" />
-            <div className="relative w-full max-w-sm hidden md:block">
+            <div className="relative w-full max-sm hidden md:block">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 type="search"
