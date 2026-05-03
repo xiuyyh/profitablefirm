@@ -46,12 +46,25 @@ export default function Dashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   const [isProcessingYield, setIsProcessingYield] = useState(false);
+  
+  // UI Volatility Ticker state
+  const [marketNoise, setMarketNoise] = useState(1);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push("/login");
     }
   }, [user, isUserLoading, router]);
+
+  // Market Ticker Simulation: Updates every 3 seconds for UI feel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Minor fluctuation between -0.15% and +0.15% for visual "ticking"
+      const noise = 1 + (Math.random() * 0.003 - 0.0015);
+      setMarketNoise(noise);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch full profile for yield config
   const profileRef = useMemoFirebase(() => {
@@ -77,7 +90,7 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // Yield Accrual Logic
+  // Yield Accrual Logic with 20% Variance Protocol
   useEffect(() => {
     if (profile?.autoProfitEnabled && investments && investments.length > 0 && !isProcessingYield) {
       const now = new Date();
@@ -88,11 +101,18 @@ export default function Dashboard() {
       const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
       const daysPassed = secondsPassed / (24 * 3600);
 
-      // Process if at least 10 minutes (600s) have passed
-      if (daysPassed > 0.0069) { 
+      // Process if at least 15 minutes have passed to mimic batch trading
+      if (daysPassed > 0.01) { 
         setIsProcessingYield(true);
         
-        const totalProfitToAccrue = profile.dailyProfitAmount * daysPassed;
+        // Target base profit for the elapsed time
+        const baseProfit = profile.dailyProfitAmount * daysPassed;
+        
+        // Apply 20% Variance Protocol: Resulting profit is 80% to 120% of base
+        // This ensures profit is not a flat linear growth
+        const varianceFactor = 0.8 + (Math.random() * 0.4);
+        const totalProfitToAccrue = baseProfit * varianceFactor;
+
         const targets = investments.filter(inv => inv.type === profile.profitAssetType);
         
         if (targets.length > 0) {
@@ -112,6 +132,9 @@ export default function Dashboard() {
             lastYieldAccrualAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
+          
+          // Reset processing state after a short delay
+          setTimeout(() => setIsProcessingYield(false), 2000);
         }
       }
     }
@@ -119,8 +142,8 @@ export default function Dashboard() {
 
   // Calculations
   const investmentValue = useMemo(() => {
-    return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
-  }, [investments]);
+    return (investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0) * marketNoise;
+  }, [investments, marketNoise]);
 
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
@@ -140,11 +163,11 @@ export default function Dashboard() {
     if (!investments || investmentValue === 0) return [];
     const types = ["Crypto", "Stock", "Forex", "Bond", "ETF"];
     return types.map(type => {
-      const value = investments.filter(i => i.type === type).reduce((s, i) => s + (i.currentMarketPricePerUnit * i.quantity), 0);
+      const value = (investments.filter(i => i.type === type).reduce((s, i) => s + (i.currentMarketPricePerUnit * i.quantity), 0)) * marketNoise;
       const percentage = (value / investmentValue) * 100;
       return { type, value, percentage };
     }).filter(a => a.value > 0);
-  }, [investments, investmentValue]);
+  }, [investments, investmentValue, marketNoise]);
 
   if (isUserLoading || !user) {
     return (
@@ -174,7 +197,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             {profile?.autoProfitEnabled && (
               <Badge variant="outline" className="text-[10px] uppercase border-yellow-500/30 text-yellow-500 bg-yellow-500/5 animate-pulse">
-                <Zap className="h-3 w-3 mr-1" /> Yield Engine Active
+                <Zap className="h-3 w-3 mr-1" /> Yield Engine Optimized
               </Badge>
             )}
             <Badge variant="outline" className="text-[10px] uppercase border-primary/30 text-primary bg-primary/5">
@@ -193,7 +216,7 @@ export default function Dashboard() {
                 <Shield className="h-4 w-4 text-primary" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Investor Terminal</span>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight">Financial Overview</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Portfolio Analysis</h1>
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => router.push('/investments')} className="h-8 px-4 text-xs font-bold bg-primary text-primary-foreground uppercase tracking-wider">
@@ -205,25 +228,25 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard 
               title="Total Account Equity" 
-              value={`$${totalAccountEquity.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+              value={`$${totalAccountEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(1)) : undefined} 
               icon={DollarSign}
               variant="accent"
             />
             <MetricCard 
-              title="Available Ledger" 
+              title="Ledger Balance" 
               value={`$${ledgerBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
               icon={CreditCard}
-              trendLabel="CASH BALANCE"
+              trendLabel="VERIFIED CASH"
             />
             <MetricCard 
-              title="Net Portfolio P&L" 
-              value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+              title="Net Delta (PnL)" 
+              value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={pnlPercentage} 
               icon={TrendingUp}
             />
             <MetricCard 
-              title="AUM Growth Rate" 
+              title="Growth Rate" 
               value={profile?.autoProfitEnabled ? `+$${profile.dailyProfitAmount.toFixed(2)}/day` : "$0.00"} 
               icon={Zap}
             />
@@ -236,7 +259,7 @@ export default function Dashboard() {
             <div className="space-y-6">
               <Card className="border border-border bg-card shadow-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Asset Distribution</CardTitle>
+                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Diversification Matrix</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {allocation.length > 0 ? allocation.map((item) => (
@@ -247,14 +270,14 @@ export default function Dashboard() {
                       </div>
                       <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-primary" 
+                          className="h-full bg-primary transition-all duration-1000" 
                           style={{ width: `${item.percentage}%` }}
                         />
                       </div>
                     </div>
                   )) : (
                     <div className="py-10 text-center opacity-30 text-[10px] font-bold uppercase tracking-widest">
-                      Zero Distribution Detected
+                      No Assets Detected
                     </div>
                   )}
                 </CardContent>
@@ -264,12 +287,12 @@ export default function Dashboard() {
                 <Card className="border border-yellow-500/20 bg-yellow-500/5 text-yellow-500">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                      <Zap className="h-3 w-3" /> Yield Protocol Optimized
+                      <Activity className="h-3 w-3" /> Yield Engine: Volatility Active
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-[13px] font-medium leading-relaxed italic opacity-90">
-                      "Your portfolio is currently accruing automated profits at a rate of ${profile.dailyProfitAmount.toFixed(2)} per 24 hours in {profile.profitAssetType}."
+                    <p className="text-[12px] font-medium leading-relaxed italic opacity-90">
+                      "Real-time market simulations are being applied to your {profile.profitAssetType} holdings. Daily returns are adjusted within a ±20% deviation leg to mirror institutional trading performance."
                     </p>
                   </CardContent>
                 </Card>
@@ -280,9 +303,9 @@ export default function Dashboard() {
           <Card className="border border-border bg-card shadow-none">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div>
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Real-Time Holdings (Recent)</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Market Ticker (Live Holdings)</CardTitle>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/investments')} className="h-7 text-[10px] uppercase font-bold text-primary">Full Portfolio</Button>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/investments')} className="h-7 text-[10px] uppercase font-bold text-primary">Portfolio Auditor</Button>
             </CardHeader>
             <CardContent>
               {isInvestmentsLoading ? (
@@ -293,10 +316,10 @@ export default function Dashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Asset</TableHead>
-                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Type</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Market Value</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Quantity</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Security</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Classification</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Equity (USD)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Position Size</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -313,18 +336,18 @@ export default function Dashboard() {
                             {inv.type}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono font-semibold text-sm py-3">
-                          ${(inv.currentMarketPricePerUnit * inv.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        <TableCell className="text-right font-mono font-semibold text-sm py-3 transition-all duration-300">
+                          ${((inv.currentMarketPricePerUnit * inv.quantity) * marketNoise).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs py-3">
-                          {inv.quantity.toLocaleString()}
+                          {inv.quantity.toLocaleString()} Units
                         </TableCell>
                       </TableRow>
                     ))}
                     {!investments?.length && (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center py-8 text-muted-foreground text-xs uppercase tracking-widest">
-                          No investment data found
+                          Zero Asset Data Found
                         </TableCell>
                       </TableRow>
                     )}

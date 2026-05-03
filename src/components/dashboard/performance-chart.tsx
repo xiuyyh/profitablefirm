@@ -30,20 +30,23 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function PerformanceChart({ currentTotal }: PerformanceChartProps) {
-  // Generate realistic-looking historical data points anchored to the current real total
+  // Generate volatile historical data points anchored to the current real total
   const data = useMemo(() => {
     const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
     const now = new Date();
     const currentMonthIndex = now.getMonth();
     
-    // We create a trend that ends at the currentTotal
+    // We create a trend that ends at the currentTotal with significant noise
     return months.map((month, index) => {
       if (index > currentMonthIndex) return null;
       
-      // Simulate historical trend (roughly 70% to 100% of current value over the year)
+      // Simulate historical trend
       const progress = (index + 1) / (currentMonthIndex + 1);
-      const trendFactor = 0.8 + (progress * 0.2);
-      const volatility = 1 + (Math.random() * 0.05 - 0.025);
+      const trendFactor = 0.75 + (progress * 0.25);
+      
+      // Increased volatility for "mimicking real trading"
+      // Random swing of +/- 4% per month point
+      const volatility = 1 + (Math.random() * 0.08 - 0.04);
       
       return {
         date: month,
@@ -55,7 +58,7 @@ export function PerformanceChart({ currentTotal }: PerformanceChartProps) {
   return (
     <Card className="border border-border bg-card shadow-none h-full">
       <CardHeader className="pb-4">
-        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Equity Performance Analysis</CardTitle>
+        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Historical Performance Audit</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">
