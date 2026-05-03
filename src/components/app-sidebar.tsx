@@ -21,7 +21,9 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth, useUser } from "@/firebase";
+import { signOut } from "firebase/auth";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Terminal", href: "/" },
@@ -32,6 +34,14 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useUser();
+  const auth = useAuth();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border">
@@ -87,7 +97,10 @@ export function AppSidebar() {
       <SidebarFooter className="p-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="w-full text-muted-foreground hover:text-destructive h-9">
+            <SidebarMenuButton 
+              onClick={handleLogout}
+              className="w-full text-muted-foreground hover:text-destructive h-9"
+            >
               <LogOut className="h-4 w-4" />
               <span className="text-xs uppercase tracking-tight">Terminate Session</span>
             </SidebarMenuButton>

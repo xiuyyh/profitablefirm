@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -14,7 +17,8 @@ import {
   PlusCircle,
   ArrowUpRight,
   ArrowDownRight,
-  Shield
+  Shield,
+  Terminal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +47,23 @@ const recentInvestments = [
 ];
 
 export default function Dashboard() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, isUserLoading, router]);
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Terminal className="h-8 w-8 animate-pulse text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-background text-foreground font-body antialiased">
       <AppSidebar />
@@ -68,7 +89,7 @@ export default function Dashboard() {
               <Bell className="h-4 w-4" />
             </Button>
             <div className="h-7 w-7 rounded bg-muted flex items-center justify-center text-[10px] font-bold border border-border">
-              JD
+              {user.email?.substring(0, 2).toUpperCase() || "AN"}
             </div>
           </div>
         </header>
