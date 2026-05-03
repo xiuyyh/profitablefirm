@@ -103,7 +103,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [investorProfile, isInitialized]);
 
-  // SYNCED HIGH-FREQUENCY TICKER (Matches Dashboard)
+  // SYNCED HIGH-FREQUENCY TICKER
   useEffect(() => {
     const interval = setInterval(() => {
       const noise = 0.999 + (Math.random() * 0.002);
@@ -126,7 +126,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
   const { data: rawTransactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
 
-  // CLIENT-SIDE SORTING
   const investments = useMemo(() => {
     if (!rawInvestments) return [];
     return [...rawInvestments].sort((a, b) => {
@@ -162,19 +161,22 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }, 0) || 0;
   }, [transactions]);
 
+  // CAPITAL INTEGRITY: Cost basis of holdings + net cash deposits
   const netExternalCapital = useMemo(() => {
-    return transactions?.reduce((sum, tx) => {
+    const assetCostBasis = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
+    const netCashInjected = transactions?.reduce((sum, tx) => {
       if (tx.type === 'Deposit') return sum + tx.amount;
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum;
     }, 0) || 0;
-  }, [transactions]);
+    return assetCostBasis + netCashInjected;
+  }, [investments, transactions]);
 
   const baseInvestmentValue = useMemo(() => {
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // DETERMINISTIC LIVE EQUITY CALCULATION (Matches Dashboard)
+  // DETERMINISTIC LIVE EQUITY CALCULATION
   const liveAUM = (baseInvestmentValue + ledgerBalance) * marketNoise;
   const netPnL = liveAUM - netExternalCapital;
   const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
@@ -202,7 +204,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
     const type = yieldConfig.assetType;
     const colRef = collection(firestore, "investorProfiles", investorId, "investments");
-    const transRef = collection(firestore, "investorProfiles", investorId, "transactions");
 
     const assetData: Record<string, Array<{name: string, symbol: string, price: number}>> = {
       "Crypto": [
@@ -232,13 +233,9 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     };
 
     const selected = assetData[type] || assetData["Stock"];
-    let totalInitialCost = 0;
 
     selected.forEach((asset) => {
       const quantity = Math.floor(Math.random() * 5) + 1;
-      const cost = asset.price * quantity;
-      totalInitialCost += cost;
-
       addDocumentNonBlocking(colRef, {
         investorId,
         name: asset.name,
@@ -255,22 +252,11 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
       });
     });
 
-    // CRITICAL: Create matching deposit to balance the cost basis for accurate PnL integrity
-    addDocumentNonBlocking(transRef, {
-      investorId,
-      type: "Deposit",
-      amount: totalInitialCost,
-      currency: "USD",
-      description: `Initial ${type} Portfolio Provisioning Capital`,
-      status: "Completed",
-      createdAt: serverTimestamp()
-    });
-
     setTimeout(() => {
       setIsProvisioning(false);
       toast({
         title: "Portfolio Provisioned",
-        description: `Neural Link loaded ${selected.length} assets and established a $${totalInitialCost.toLocaleString()} cost basis.`,
+        description: `Neural Link loaded ${selected.length} assets. Capital basis automatically reconciled.`,
       });
     }, 1500);
   };
@@ -478,7 +464,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                     <div className="p-4 bg-muted/20 border border-border/50 rounded-sm space-y-2">
                       <h4 className="text-[10px] font-black uppercase tracking-widest">Portfolio Jumpstart</h4>
                       <p className="text-[9px] text-muted-foreground leading-relaxed">
-                        Generate a standard high-fidelity holding portfolio based on the selected classification. This will populate the investor's "Asset Distribution" and establish a cost basis for accurate PnL tracking.
+                        Generate a standard high-fidelity holding portfolio based on the selected classification. This automatically establishes a cost basis for accurate PnL tracking without bloating cash reserves.
                       </p>
                     </div>
                     

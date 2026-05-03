@@ -54,7 +54,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // High-frequency institutional noise (±0.1%)
+      // Ultra-subtle institutional noise (±0.1%)
       const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
     }, 400);
@@ -82,7 +82,7 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // LEDGER ACCOUNTING (Verifiable Integrity)
+  // LEDGER ACCOUNTING (Liquid Cash On Hand)
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -90,17 +90,19 @@ export default function Dashboard() {
     }, 0) || 0;
   }, [transactions]);
 
+  // CAPITAL INTEGRITY: Calculate cost basis of all holdings + net cash injected
   const netExternalCapital = useMemo(() => {
-    return transactions?.reduce((sum, tx) => {
+    const assetCostBasis = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
+    const netCashInjected = transactions?.reduce((sum, tx) => {
       if (tx.type === 'Deposit') return sum + tx.amount;
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum;
     }, 0) || 0;
-  }, [transactions]);
+    return assetCostBasis + netCashInjected;
+  }, [investments, transactions]);
 
-  // INSTITUTIONAL MOMENTUM ENGINE (LADDER CLIMBING v3)
+  // INSTITUTIONAL MOMENTUM ENGINE (LADDER CLIMBING v4)
   useEffect(() => {
-    // Only accrue if engine is enabled AND user has capital at risk
     if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user && netExternalCapital > 0) {
       const interval = setInterval(() => {
         const now = new Date();
@@ -110,7 +112,7 @@ export default function Dashboard() {
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
 
-        // ACCRUE EVERY 60 SECONDS OF ELAPSED TIME
+        // ACCRUE EVERY 60 SECONDS
         if (secondsPassed >= 60 && !isProcessingYield) { 
           setIsProcessingYield(true);
           
@@ -119,20 +121,20 @@ export default function Dashboard() {
           
           /**
            * LADDER CLIMBING PROTOCOL
-           * - Move up 0.8% of daily slice bias
-           * - Dip 0.2% of daily slice bias
+           * - Move up +0.8% of daily slice bias (80% weight)
+           * - Dip -0.2% of daily slice bias (20% weight)
            * - After 5 steps of growth, trigger 1% pullback
            */
           let multiplier = 1;
           if (accrualStreak.current >= 5) {
-            multiplier = -1.0; // 1% Retracement
+            multiplier = -1.0; 
             accrualStreak.current = 0;
           } else {
             if (Math.random() > 0.2) {
-              multiplier = 1.8; // Bias toward 0.8% growth (1.0 base + 0.8 bonus)
+              multiplier = 1.8; 
               accrualStreak.current += 1;
             } else {
-              multiplier = 0.8; // Bias toward 0.2% dip (1.0 base - 0.2 dip)
+              multiplier = 0.8; 
               accrualStreak.current = 0;
             }
           }
@@ -141,7 +143,6 @@ export default function Dashboard() {
           const targets = investments?.filter(inv => inv.type === profile.profitAssetType) || [];
           
           if (targets.length > 0) {
-            // Apply profit to existing assets (unrealized growth)
             targets.forEach(target => {
               const portionProfit = profitToApply / targets.length;
               const profitPerUnit = portionProfit / target.quantity;
@@ -155,14 +156,13 @@ export default function Dashboard() {
               });
             });
           } else {
-            // No assets? Add directly to ledger as realized profit
             const transRef = collection(firestore, "investorProfiles", user.uid, "transactions");
             addDocumentNonBlocking(transRef, {
               investorId: user.uid,
               type: 'Profit',
               amount: profitToApply,
               currency: 'USD',
-              description: 'Algorithmic Growth Distribution',
+              description: 'Neural Yield Accrual',
               status: 'Completed',
               createdAt: serverTimestamp()
             });
@@ -182,7 +182,6 @@ export default function Dashboard() {
     }
   }, [profile, investments, firestore, user, isProcessingYield, netExternalCapital]);
 
-  // CLIENT-SIDE SORTING
   const sortedInvestments = useMemo(() => {
     if (!investments) return [];
     return [...investments].sort((a, b) => {
@@ -231,7 +230,7 @@ export default function Dashboard() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search portfolio..."
+                placeholder="Search portfolio nodes..."
                 className="h-8 pl-8 bg-background border-border text-xs focus-visible:ring-primary rounded-none"
               />
             </div>
@@ -343,7 +342,7 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedInvestments.slice(0, 10).map((inv) => (
+                    {sortedInvestments.map((inv) => (
                       <TableRow key={inv.id} className="border-border hover:bg-primary/5 transition-colors">
                         <TableCell className="py-4 px-6">
                           <div className="flex flex-col">
