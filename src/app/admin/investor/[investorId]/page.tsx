@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, use } from "react";
+import { useEffect, use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -17,7 +17,9 @@ import {
   Mail,
   User as UserIcon,
   Trash2,
-  ExternalLink
+  Zap,
+  Save,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -36,15 +38,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc, query, orderBy, deleteDoc } from "firebase/firestore";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { collection, doc, query, orderBy, serverTimestamp } from "firebase/firestore";
 import { MetricCard } from "@/components/dashboard/metric-card";
-import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useToast } from "@/hooks/use-toast";
 
 export default function InvestorInspectPage({ params }: { params: Promise<{ investorId: string }> }) {
   const { investorId } = use(params);
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
+
+  const [yieldConfig, setYieldConfig] = useState({
+    enabled: false,
+    amount: "0",
+    assetType: "Crypto"
+  });
 
   // Check admin privileges
   const adminProfileRef = useMemoFirebase(() => {
@@ -61,6 +81,16 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
   }, [firestore, investorId]);
 
   const { data: investorProfile, isLoading: isProfileLoading } = useDoc(targetProfileRef);
+
+  useEffect(() => {
+    if (investorProfile) {
+      setYieldConfig({
+        enabled: investorProfile.autoProfitEnabled || false,
+        amount: investorProfile.dailyProfitAmount?.toString() || "0",
+        assetType: investorProfile.profitAssetType || "Crypto"
+      });
+    }
+  }, [investorProfile]);
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !investorId) return null;
@@ -82,6 +112,23 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
   const totalCost = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
   const unrealizedPnL = totalValue - totalCost;
   const pnlPercentage = totalCost > 0 ? (unrealizedPnL / totalCost) * 100 : 0;
+
+  const handleSaveYieldConfig = () => {
+    if (!firestore || !investorId) return;
+    
+    const docRef = doc(firestore, "investorProfiles", investorId);
+    updateDocumentNonBlocking(docRef, {
+      autoProfitEnabled: yieldConfig.enabled,
+      dailyProfitAmount: Number(yieldConfig.amount),
+      profitAssetType: yieldConfig.assetType,
+      updatedAt: serverTimestamp()
+    });
+
+    toast({
+      title: "Yield Protocol Updated",
+      description: `Automated ${yieldConfig.assetType} profit of $${yieldConfig.amount}/day has been ${yieldConfig.enabled ? 'activated' : 'deactivated'}.`,
+    });
+  };
 
   const handleDeleteInvestment = (investmentId: string) => {
     if (!firestore || !investorId) return;
@@ -152,14 +199,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest">
-                Suspend Access
-              </Button>
-              <Button variant="destructive" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest">
-                Force De-auth
-              </Button>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -181,97 +220,157 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               icon={Briefcase}
             />
             <MetricCard 
-              title="Verification" 
-              value="IDENTITY_OK" 
-              icon={UserIcon}
+              title="Yield Status" 
+              value={investorProfile.autoProfitEnabled ? "ACTIVE" : "DISABLED"} 
+              icon={Zap}
             />
           </div>
 
-          <Card className="border-border bg-card shadow-none">
-            <CardHeader className="border-b bg-muted/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest">Equity Holdings</CardTitle>
-                  <CardDescription className="text-[10px] uppercase mt-1">
-                    Live audit of all financial assets in this investor's portfolio
-                  </CardDescription>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-1 border-border bg-card shadow-none">
+              <CardHeader className="bg-muted/10 border-b">
+                <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-yellow-500" /> Automated Yield Engine
+                </CardTitle>
+                <CardDescription className="text-[10px] uppercase">
+                  Configure real-time daily profit growth
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest">Enable Autogrowth</Label>
+                    <p className="text-[9px] text-muted-foreground uppercase">Toggle real-time profit generation</p>
+                  </div>
+                  <Switch 
+                    checked={yieldConfig.enabled} 
+                    onCheckedChange={(checked) => setYieldConfig({...yieldConfig, enabled: checked})} 
+                  />
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {isInvestmentsLoading ? (
-                <div className="h-40 flex items-center justify-center">
-                  <Terminal className="h-6 w-6 animate-spin text-primary" />
+                
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest">Daily Profit ($)</Label>
+                  <Input 
+                    type="number" 
+                    value={yieldConfig.amount} 
+                    onChange={(e) => setYieldConfig({...yieldConfig, amount: e.target.value})}
+                    className="bg-background border-border font-mono text-sm"
+                    placeholder="50.00"
+                  />
                 </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent bg-muted/20 border-border">
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Asset</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Class</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Quantity</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Cost Basis</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Market Value</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Performance</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {investments?.map((inv) => {
-                      const value = inv.currentMarketPricePerUnit * inv.quantity;
-                      const cost = inv.purchasePricePerUnit * inv.quantity;
-                      const pnl = value - cost;
-                      const pnlPerc = cost > 0 ? (pnl / cost) * 100 : 0;
 
-                      return (
-                        <TableRow key={inv.id} className="border-border hover:bg-muted/30">
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-sm">{inv.name}</span>
-                              <span className="text-[10px] font-mono text-muted-foreground uppercase">{inv.symbol}</span>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest">Reference Asset Type</Label>
+                  <Select 
+                    value={yieldConfig.assetType} 
+                    onValueChange={(val) => setYieldConfig({...yieldConfig, assetType: val})}
+                  >
+                    <SelectTrigger className="bg-background border-border">
+                      <SelectValue placeholder="Select asset type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Crypto">Cryptocurrency</SelectItem>
+                      <SelectItem value="Stock">Stocks</SelectItem>
+                      <SelectItem value="Forex">Forex</SelectItem>
+                      <SelectItem value="Bond">Bonds</SelectItem>
+                      <SelectItem value="ETF">ETF</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button 
+                  onClick={handleSaveYieldConfig}
+                  className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px]"
+                >
+                  <Save className="h-3 w-3 mr-2" /> Save Configuration
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2 border-border bg-card shadow-none">
+              <CardHeader className="border-b bg-muted/10">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-bold uppercase tracking-widest">Equity Holdings</CardTitle>
+                    <CardDescription className="text-[10px] uppercase mt-1">
+                      Live audit of all financial assets in this investor's portfolio
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isInvestmentsLoading ? (
+                  <div className="h-40 flex items-center justify-center">
+                    <Terminal className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent bg-muted/20 border-border">
+                        <TableHead className="text-[10px] uppercase font-bold tracking-wider">Asset</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold tracking-wider">Class</TableHead>
+                        <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Quantity</TableHead>
+                        <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Market Value</TableHead>
+                        <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Performance</TableHead>
+                        <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {investments?.map((inv) => {
+                        const value = inv.currentMarketPricePerUnit * inv.quantity;
+                        const cost = inv.purchasePricePerUnit * inv.quantity;
+                        const pnl = value - cost;
+                        const pnlPerc = cost > 0 ? (pnl / cost) * 100 : 0;
+
+                        return (
+                          <TableRow key={inv.id} className="border-border hover:bg-muted/30">
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-sm">{inv.name}</span>
+                                <span className="text-[10px] font-mono text-muted-foreground uppercase">{inv.symbol}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="text-[9px] uppercase font-bold py-0 bg-muted">
+                                {inv.type}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono text-xs">{inv.quantity.toLocaleString()}</TableCell>
+                            <TableCell className="text-right font-mono text-xs font-bold">${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                            <TableCell className="text-right">
+                              <span className={`font-mono text-[11px] font-bold ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {pnlPerc >= 0 ? '+' : ''}{pnlPerc.toFixed(2)}%
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => handleDeleteInvestment(inv.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {!investments?.length && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-20">
+                            <div className="flex flex-col items-center gap-2 opacity-50">
+                              <Terminal className="h-6 w-6" />
+                              <span className="text-[10px] uppercase font-bold tracking-[0.2em]">No Portfolio Assets Detected</span>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="text-[9px] uppercase font-bold py-0 bg-muted">
-                              {inv.type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-xs">{inv.quantity.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-mono text-xs">${inv.purchasePricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
-                          <TableCell className="text-right font-mono text-xs font-bold">${inv.currentMarketPricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
-                          <TableCell className="text-right">
-                            <span className={`font-mono text-[11px] font-bold ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              {pnlPerc >= 0 ? '+' : ''}{pnlPerc.toFixed(2)}%
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDeleteInvestment(inv.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
                         </TableRow>
-                      );
-                    })}
-                    {!investments?.length && (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-20">
-                          <div className="flex flex-col items-center gap-2 opacity-50">
-                            <Terminal className="h-6 w-6" />
-                            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">No Portfolio Assets Detected</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </main>
       </SidebarInset>
     </div>

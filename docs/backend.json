@@ -29,6 +29,23 @@
           "description": "The authorization level of the user (e.g., 'investor', 'admin').",
           "enum": ["investor", "admin"]
         },
+        "autoProfitEnabled": {
+          "type": "boolean",
+          "description": "Whether automated daily profit calculation is active for this investor."
+        },
+        "dailyProfitAmount": {
+          "type": "number",
+          "description": "The fixed amount of profit to add to the portfolio every 24 hours."
+        },
+        "profitAssetType": {
+          "type": "string",
+          "description": "The asset class (e.g., 'Crypto', 'Stock') where the profit will be applied."
+        },
+        "lastYieldAccrualAt": {
+          "type": "string",
+          "description": "Timestamp of the last yield accrual process.",
+          "format": "date-time"
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp when the investor profile was created.",
