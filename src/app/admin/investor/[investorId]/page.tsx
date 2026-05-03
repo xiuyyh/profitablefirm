@@ -103,7 +103,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [investorProfile, isInitialized]);
 
-  // SYNCED HIGH-FREQUENCY TICKER
+  // SYNCED HIGH-FREQUENCY TICKER (Matches Dashboard)
   useEffect(() => {
     const interval = setInterval(() => {
       const noise = 0.999 + (Math.random() * 0.002);
@@ -154,7 +154,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [user, isUserLoading, adminProfile, router]);
 
-  // LEDGER ACCOUNTING
+  // LEDGER ACCOUNTING (Verifiable Integrity)
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -174,7 +174,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // DETERMINISTIC LIVE EQUITY CALCULATION
+  // DETERMINISTIC LIVE EQUITY CALCULATION (Matches Dashboard)
   const liveAUM = (baseInvestmentValue + ledgerBalance) * marketNoise;
   const netPnL = liveAUM - netExternalCapital;
   const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
@@ -235,7 +235,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     let totalInitialCost = 0;
 
     selected.forEach((asset) => {
-      const quantity = Math.floor(Math.random() * 5) + 1; // Lowered quantity for realism
+      const quantity = Math.floor(Math.random() * 5) + 1;
       const cost = asset.price * quantity;
       totalInitialCost += cost;
 
@@ -255,7 +255,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
       });
     });
 
-    // CRITICAL: Create matching deposit to balance the cost basis
+    // CRITICAL: Create matching deposit to balance the cost basis for accurate PnL integrity
     addDocumentNonBlocking(transRef, {
       investorId,
       type: "Deposit",

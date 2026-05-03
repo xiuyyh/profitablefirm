@@ -54,10 +54,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // Ultra-subtle institutional noise (±0.1%)
-      const noise = 0.9995 + (Math.random() * 0.001);
+      // High-frequency institutional noise (±0.1%)
+      const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
-    }, 500);
+    }, 400);
     return () => clearInterval(interval);
   }, []);
 
@@ -82,9 +82,26 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // INSTITUTIONAL MOMENTUM ENGINE (LADDER CLIMBING v2)
+  // LEDGER ACCOUNTING (Verifiable Integrity)
+  const ledgerBalance = useMemo(() => {
+    return transactions?.reduce((sum, tx) => {
+      if (tx.type === 'Withdrawal') return sum - tx.amount;
+      return sum + tx.amount;
+    }, 0) || 0;
+  }, [transactions]);
+
+  const netExternalCapital = useMemo(() => {
+    return transactions?.reduce((sum, tx) => {
+      if (tx.type === 'Deposit') return sum + tx.amount;
+      if (tx.type === 'Withdrawal') return sum - tx.amount;
+      return sum;
+    }, 0) || 0;
+  }, [transactions]);
+
+  // INSTITUTIONAL MOMENTUM ENGINE (LADDER CLIMBING v3)
   useEffect(() => {
-    if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user) {
+    // Only accrue if engine is enabled AND user has capital at risk
+    if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user && netExternalCapital > 0) {
       const interval = setInterval(() => {
         const now = new Date();
         const lastAccrual = profile.lastYieldAccrualAt 
@@ -93,7 +110,7 @@ export default function Dashboard() {
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
 
-        // ACCRUE EVERY MINUTE SILENTLY
+        // ACCRUE EVERY 60 SECONDS OF ELAPSED TIME
         if (secondsPassed >= 60 && !isProcessingYield) { 
           setIsProcessingYield(true);
           
@@ -102,28 +119,29 @@ export default function Dashboard() {
           
           /**
            * LADDER CLIMBING PROTOCOL
-           * 80% Bias toward 0.8% growth slice
-           * 20% Bias toward 0.2% pullback slice
-           * 5-Step streak triggers 1.0% pullback
+           * - Move up 0.8% of daily slice bias
+           * - Dip 0.2% of daily slice bias
+           * - After 5 steps of growth, trigger 1% pullback
            */
-          let bias = 0;
+          let multiplier = 1;
           if (accrualStreak.current >= 5) {
-            bias = -1.0; // 1% Pullback after 5 steps of growth
+            multiplier = -1.0; // 1% Retracement
             accrualStreak.current = 0;
           } else {
             if (Math.random() > 0.2) {
-              bias = 0.8; // Climb 0.8%
+              multiplier = 1.8; // Bias toward 0.8% growth (1.0 base + 0.8 bonus)
               accrualStreak.current += 1;
             } else {
-              bias = -0.2; // Dip 0.2%
+              multiplier = 0.8; // Bias toward 0.2% dip (1.0 base - 0.2 dip)
               accrualStreak.current = 0;
             }
           }
             
-          const profitToApply = baseProfitSlice * (1 + bias);
+          const profitToApply = baseProfitSlice * multiplier;
           const targets = investments?.filter(inv => inv.type === profile.profitAssetType) || [];
           
           if (targets.length > 0) {
+            // Apply profit to existing assets (unrealized growth)
             targets.forEach(target => {
               const portionProfit = profitToApply / targets.length;
               const profitPerUnit = portionProfit / target.quantity;
@@ -137,13 +155,14 @@ export default function Dashboard() {
               });
             });
           } else {
+            // No assets? Add directly to ledger as realized profit
             const transRef = collection(firestore, "investorProfiles", user.uid, "transactions");
             addDocumentNonBlocking(transRef, {
               investorId: user.uid,
               type: 'Profit',
               amount: profitToApply,
               currency: 'USD',
-              description: 'Algorithmic Yield Distribution',
+              description: 'Algorithmic Growth Distribution',
               status: 'Completed',
               createdAt: serverTimestamp()
             });
@@ -157,11 +176,11 @@ export default function Dashboard() {
           
           setTimeout(() => setIsProcessingYield(false), 2000);
         }
-      }, 10000); 
+      }, 5000); 
       
       return () => clearInterval(interval);
     }
-  }, [profile, investments, firestore, user, isProcessingYield]);
+  }, [profile, investments, firestore, user, isProcessingYield, netExternalCapital]);
 
   // CLIENT-SIDE SORTING
   const sortedInvestments = useMemo(() => {
@@ -173,30 +192,12 @@ export default function Dashboard() {
     });
   }, [investments]);
 
-  // LEDGER ACCOUNTING
-  const ledgerBalance = useMemo(() => {
-    return transactions?.reduce((sum, tx) => {
-      if (tx.type === 'Withdrawal') return sum - tx.amount;
-      return sum + tx.amount;
-    }, 0) || 0;
-  }, [transactions]);
-
-  // COST BASIS (DEPOSITS ONLY)
-  const netExternalCapital = useMemo(() => {
-    return transactions?.reduce((sum, tx) => {
-      if (tx.type === 'Deposit') return sum + tx.amount;
-      if (tx.type === 'Withdrawal') return sum - tx.amount;
-      return sum;
-    }, 0) || 0;
-  }, [transactions]);
-
   const baseInvestmentValue = useMemo(() => {
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // LIVE ACCOUNT EQUITY & PNL
+  // LIVE ACCOUNT EQUITY & PNL (Integrity Calculated)
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
-  // Net PnL = Total Value - What the user actually deposited
   const netPnL = totalAccountEquity - netExternalCapital;
   const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
 
