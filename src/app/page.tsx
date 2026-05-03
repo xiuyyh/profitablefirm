@@ -58,8 +58,8 @@ export default function Dashboard() {
   // High-Frequency Market Ticker Simulation
   useEffect(() => {
     const interval = setInterval(() => {
-      // Fluctuation between -0.5% and +0.5% every 500ms for a very active feel
-      const noise = 0.995 + (Math.random() * 0.01);
+      // Fluctuation between -0.15% and +0.15% every 500ms for a very active feel
+      const noise = 0.9985 + (Math.random() * 0.003);
       setMarketNoise(noise);
     }, 500);
     return () => clearInterval(interval);
@@ -105,21 +105,16 @@ export default function Dashboard() {
           setIsProcessingYield(true);
           
           // Calculate the exact portion of the daily profit for the elapsed time
-          // 1440 minutes in a day. We calculate based on total seconds passed for precision.
           const dayFraction = secondsPassed / (24 * 3600);
           const baseProfitSlice = profile.dailyProfitAmount * dayFraction;
           
-          // Real Trading Simulation: 
-          // Applies a variance factor. Occasionally results in negative profit (loss)
-          // to mimic market pullbacks, while trending towards the target goal.
-          // Range: -20% to +220% of the minute's expected profit, averaging 100% (1.0 factor)
+          // Real Trading Simulation variance: -20% to +220%
           const varianceFactor = -0.2 + (Math.random() * 2.4);
           const profitToApply = baseProfitSlice * varianceFactor;
 
           const targets = investments.filter(inv => inv.type === profile.profitAssetType);
           
           if (targets.length > 0) {
-            // Distribute profit across target assets (applying to the first found for simplicity)
             const target = targets[0];
             const profitPerUnit = profitToApply / target.quantity;
             const newPrice = target.currentMarketPricePerUnit + profitPerUnit;
@@ -137,7 +132,6 @@ export default function Dashboard() {
               updatedAt: serverTimestamp()
             });
             
-            // Short delay before allowing the next cycle to prevent race conditions
             setTimeout(() => setIsProcessingYield(false), 2000);
           } else {
             setIsProcessingYield(false);
@@ -149,12 +143,7 @@ export default function Dashboard() {
     }
   }, [profile, investments, firestore, user, isProcessingYield]);
 
-  // Derived Values incorporating the live ticker noise
-  const investmentValue = useMemo(() => {
-    const baseValue = investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
-    return baseValue * marketNoise;
-  }, [investments, marketNoise]);
-
+  // Derived Values
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -162,23 +151,30 @@ export default function Dashboard() {
     }, 0) || 0;
   }, [transactions]);
 
-  const totalAccountEquity = investmentValue + ledgerBalance;
+  const baseInvestmentValue = useMemo(() => {
+    return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
+  }, [investments]);
+
+  const totalCost = useMemo(() => {
+    return investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
+  }, [investments]);
+
+  // Apply Live Ticker Noise to the entire Equity stack
+  const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
   
-  const totalCost = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
-  const unrealizedPnL = investmentValue - totalCost;
-  const pnlPercentage = totalCost > 0 ? (unrealizedPnL / totalCost) * 100 : 0;
+  const unrealizedPnL = totalAccountEquity - (totalCost + ledgerBalance);
+  const pnlPercentage = (totalCost + ledgerBalance) > 0 ? (unrealizedPnL / (totalCost + ledgerBalance)) * 100 : 0;
 
   // Real Asset Allocation
   const allocation = useMemo(() => {
-    if (!investments || investmentValue === 0) return [];
+    if (!investments || baseInvestmentValue === 0) return [];
     const types = ["Crypto", "Stock", "Forex", "Bond", "ETF"];
     return types.map(type => {
-      const baseVal = investments.filter(i => i.type === type).reduce((s, i) => s + (i.currentMarketPricePerUnit * i.quantity), 0);
-      const value = baseVal * marketNoise;
-      const percentage = (value / investmentValue) * 100;
+      const value = investments.filter(i => i.type === type).reduce((s, i) => s + (i.currentMarketPricePerUnit * i.quantity), 0);
+      const percentage = (value / baseInvestmentValue) * 100;
       return { type, value, percentage };
     }).filter(a => a.value > 0);
-  }, [investments, investmentValue, marketNoise]);
+  }, [investments, baseInvestmentValue]);
 
   if (isUserLoading || !user) {
     return (
@@ -241,7 +237,7 @@ export default function Dashboard() {
             <MetricCard 
               title="Total Account Equity" 
               value={`$${totalAccountEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-              trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(1)) : undefined} 
+              trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(2)) : undefined} 
               icon={DollarSign}
               variant="accent"
             />
