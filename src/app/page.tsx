@@ -47,7 +47,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [isProcessingYield, setIsProcessingYield] = useState(false);
   
-  // UI Volatility Ticker state
+  // UI Volatility Ticker state - increased frequency for better real-time feel
   const [marketNoise, setMarketNoise] = useState(1);
 
   useEffect(() => {
@@ -56,13 +56,13 @@ export default function Dashboard() {
     }
   }, [user, isUserLoading, router]);
 
-  // Market Ticker Simulation: Updates every 3 seconds for UI feel
+  // High-Frequency Market Ticker Simulation
   useEffect(() => {
     const interval = setInterval(() => {
-      // Minor fluctuation between -0.15% and +0.15% for visual "ticking"
-      const noise = 1 + (Math.random() * 0.003 - 0.0015);
+      // Fluctuation between -0.2% and +0.2% every 1.5 seconds for active trading feel
+      const noise = 0.998 + (Math.random() * 0.004);
       setMarketNoise(noise);
-    }, 3000);
+    }, 1500);
     return () => clearInterval(interval);
   }, []);
 
@@ -101,15 +101,13 @@ export default function Dashboard() {
       const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
       const daysPassed = secondsPassed / (24 * 3600);
 
-      // Process if at least 15 minutes have passed to mimic batch trading
-      if (daysPassed > 0.01) { 
+      // Process if at least 10 minutes have passed
+      if (daysPassed > 0.007) { 
         setIsProcessingYield(true);
         
-        // Target base profit for the elapsed time
         const baseProfit = profile.dailyProfitAmount * daysPassed;
         
-        // Apply 20% Variance Protocol: Resulting profit is 80% to 120% of base
-        // This ensures profit is not a flat linear growth
+        // 20% Variance Protocol
         const varianceFactor = 0.8 + (Math.random() * 0.4);
         const totalProfitToAccrue = baseProfit * varianceFactor;
 
@@ -133,16 +131,16 @@ export default function Dashboard() {
             updatedAt: serverTimestamp()
           });
           
-          // Reset processing state after a short delay
           setTimeout(() => setIsProcessingYield(false), 2000);
         }
       }
     }
   }, [profile, investments, firestore, user, isProcessingYield]);
 
-  // Calculations
+  // Derived Values incorporating the live ticker noise
   const investmentValue = useMemo(() => {
-    return (investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0) * marketNoise;
+    const baseValue = investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
+    return baseValue * marketNoise;
   }, [investments, marketNoise]);
 
   const ledgerBalance = useMemo(() => {
@@ -163,7 +161,8 @@ export default function Dashboard() {
     if (!investments || investmentValue === 0) return [];
     const types = ["Crypto", "Stock", "Forex", "Bond", "ETF"];
     return types.map(type => {
-      const value = (investments.filter(i => i.type === type).reduce((s, i) => s + (i.currentMarketPricePerUnit * i.quantity), 0)) * marketNoise;
+      const baseVal = investments.filter(i => i.type === type).reduce((s, i) => s + (i.currentMarketPricePerUnit * i.quantity), 0);
+      const value = baseVal * marketNoise;
       const percentage = (value / investmentValue) * 100;
       return { type, value, percentage };
     }).filter(a => a.value > 0);
@@ -195,14 +194,15 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 mr-2">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-green-500">Live Network</span>
+            </div>
             {profile?.autoProfitEnabled && (
-              <Badge variant="outline" className="text-[10px] uppercase border-yellow-500/30 text-yellow-500 bg-yellow-500/5 animate-pulse">
-                <Zap className="h-3 w-3 mr-1" /> Yield Engine Optimized
+              <Badge variant="outline" className="text-[10px] uppercase border-yellow-500/30 text-yellow-500 bg-yellow-500/5">
+                <Zap className="h-3 w-3 mr-1" /> Yield Active
               </Badge>
             )}
-            <Badge variant="outline" className="text-[10px] uppercase border-primary/30 text-primary bg-primary/5">
-              Secure Session
-            </Badge>
             <div className="h-7 w-7 rounded bg-muted flex items-center justify-center text-[10px] font-bold border border-border">
               {user.email?.substring(0, 2).toUpperCase() || "US"}
             </div>
@@ -308,7 +308,7 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {investments?.slice(0, 5).map((inv) => (
+                    {investments?.slice(0, 8).map((inv) => (
                       <TableRow key={inv.id} className="border-border hover:bg-muted/30">
                         <TableCell className="py-3">
                           <div className="flex flex-col">
@@ -321,7 +321,7 @@ export default function Dashboard() {
                             {inv.type}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono font-semibold text-sm py-3 transition-all duration-300">
+                        <TableCell className="text-right font-mono font-semibold text-sm py-3 tabular-nums">
                           ${((inv.currentMarketPricePerUnit * inv.quantity) * marketNoise).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs py-3">
