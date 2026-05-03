@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -45,8 +45,8 @@ export default function Dashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   const [isProcessingYield, setIsProcessingYield] = useState(false);
-  
   const [marketNoise, setMarketNoise] = useState(1);
+  const accrualStreak = useRef(0);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -56,10 +56,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // Very high frequency micro-fluctuations (±0.2%)
-      const noise = 0.998 + (Math.random() * 0.004);
+      // High frequency, low amplitude micro-noise (±0.1%) to keep numbers "alive"
+      // without disrupting the underlying climb trend
+      const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
-    }, 500);
+    }, 400);
     return () => clearInterval(interval);
   }, []);
 
@@ -84,7 +85,7 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // YIELD ENGINE: LADDER CLIMBING LOGIC
+  // INSTITUTIONAL LADDER CLIMBING ENGINE
   useEffect(() => {
     if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user) {
       const interval = setInterval(() => {
@@ -95,26 +96,42 @@ export default function Dashboard() {
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
 
-        // ACCRUAL LOGIC: Trigger every 60 seconds
+        // ACCRUAL LOGIC: Trigger every 60 seconds for silent refresh
         if (secondsPassed >= 60 && !isProcessingYield) { 
           setIsProcessingYield(true);
           
           const dayFraction = secondsPassed / (24 * 3600);
           const baseProfitSlice = (profile.dailyProfitAmount || 0) * dayFraction;
           
-          // MOMENTUM BIAS: 80% Growth / 20% Small Pullback or Flat
-          const isGrowthCycle = Math.random() > 0.2;
-          const varianceFactor = isGrowthCycle 
-            ? (1.1 + Math.random() * 0.7)  // 110% to 180% of expected slice (climb)
-            : (Math.random() * 0.4 - 0.2); // -20% to 20% of expected slice (simulates realistic minor volatility)
-            
-          const profitToApply = baseProfitSlice * varianceFactor;
+          /**
+           * LADDER CLIMBING LOGIC (Deterministic Momentum):
+           * - Step Up: +0.8% bias (Aggressive climb)
+           * - Step Down: -0.2% bias (Minor retrace)
+           * - Streak Protocol: After 5 steps up, trigger a 1% "Pullback"
+           */
+          let multiplier = 0;
+          const roll = Math.random();
 
-          // Determine where to apply profit
+          if (accrualStreak.current >= 5) {
+            // Pullback cycle (1% equivalent pullback on the slice)
+            multiplier = -1.2; 
+            accrualStreak.current = 0;
+          } else {
+            // 85% chance to climb, 15% chance to dip slightly
+            if (roll > 0.15) {
+              multiplier = 1.6; // 0.8% upward velocity relative to slice
+              accrualStreak.current += 1;
+            } else {
+              multiplier = -0.4; // 0.2% downward velocity relative to slice
+              accrualStreak.current = 0;
+            }
+          }
+            
+          const profitToApply = baseProfitSlice * multiplier;
+
           const targets = investments?.filter(inv => inv.type === profile.profitAssetType) || [];
           
           if (targets.length > 0) {
-            // Apply to existing asset prices (Visible on ticker)
             const target = targets[0];
             const profitPerUnit = profitToApply / target.quantity;
             const newPrice = target.currentMarketPricePerUnit + profitPerUnit;
@@ -126,20 +143,18 @@ export default function Dashboard() {
               updatedAt: serverTimestamp()
             });
           } else {
-            // No assets? Apply profit directly to the Ledger (Visible on balance)
             const transRef = collection(firestore, "investorProfiles", user.uid, "transactions");
             addDocumentNonBlocking(transRef, {
               investorId: user.uid,
               type: 'Profit',
               amount: profitToApply,
               currency: 'USD',
-              description: 'Algorithmic Yield Accrual',
+              description: 'Real-Time Yield Distribution',
               status: 'Completed',
               createdAt: serverTimestamp()
             });
           }
 
-          // Update profile timestamp
           const profRef = doc(firestore, "investorProfiles", user.uid);
           updateDocumentNonBlocking(profRef, {
             lastYieldAccrualAt: serverTimestamp(),
@@ -148,7 +163,7 @@ export default function Dashboard() {
           
           setTimeout(() => setIsProcessingYield(false), 2000);
         }
-      }, 15000); // Check every 15s for precision
+      }, 10000); // Check every 10s
       
       return () => clearInterval(interval);
     }
@@ -169,7 +184,7 @@ export default function Dashboard() {
     return investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // LIVE ACCOUNT EQUITY (Pulsing with noise)
+  // LIVE ACCOUNT EQUITY (High-frequency Ticker)
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
   const unrealizedPnL = totalAccountEquity - (totalCost + ledgerBalance);
   const pnlPercentage = (totalCost + ledgerBalance) > 0 ? (unrealizedPnL / (totalCost + ledgerBalance)) * 100 : 0;
@@ -212,7 +227,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 mr-2">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[9px] font-bold uppercase tracking-widest text-green-500">Live Network</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-green-500">Secure Network Live</span>
             </div>
             <div className="h-7 w-7 rounded bg-muted flex items-center justify-center text-[10px] font-bold border border-border">
               {user.email?.substring(0, 2).toUpperCase() || "US"}
@@ -227,11 +242,11 @@ export default function Dashboard() {
                 <Shield className="h-4 w-4 text-primary" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Investor Terminal</span>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight">Portfolio Analysis</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Portfolio Performance</h1>
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => router.push('/investments')} className="h-8 px-4 text-xs font-bold bg-primary text-primary-foreground uppercase tracking-wider">
-                <PlusCircle className="h-3.5 w-3.5 mr-2" /> Manage Assets
+                <PlusCircle className="h-3.5 w-3.5 mr-2" /> Adjust Holdings
               </Button>
             </div>
           </div>
@@ -243,23 +258,23 @@ export default function Dashboard() {
               trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(2)) : undefined} 
               icon={DollarSign}
               variant="accent"
-              trendLabel="LIVE GAIN"
+              trendLabel="LIVE BALANCE"
             />
             <MetricCard 
-              title="Ledger Balance" 
+              title="Financial Ledger" 
               value={`$${ledgerBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={CreditCard}
-              trendLabel="VERIFIED CASH"
+              trendLabel="SETTLED CASH"
             />
             <MetricCard 
               title="Net Delta (PnL)" 
               value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={Number(pnlPercentage.toFixed(2))} 
               icon={TrendingUp}
-              trendLabel="ACCOUNT GROWTH"
+              trendLabel="GROWTH"
             />
             <MetricCard 
-              title="Growth Rate" 
+              title="Accrual Velocity" 
               value={profile?.autoProfitEnabled ? `+$${profile.dailyProfitAmount.toFixed(2)}/day` : "$0.00"} 
               icon={Zap}
             />
@@ -272,7 +287,7 @@ export default function Dashboard() {
             <div className="space-y-6">
               <Card className="border border-border bg-card shadow-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Diversification Matrix</CardTitle>
+                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Asset Distribution</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {allocation.length > 0 ? allocation.map((item) => (
@@ -290,7 +305,7 @@ export default function Dashboard() {
                     </div>
                   )) : (
                     <div className="py-10 text-center opacity-30 text-[10px] font-bold uppercase tracking-widest">
-                      No Assets Detected
+                      Zero Asset Allocation
                     </div>
                   )}
                 </CardContent>
@@ -299,13 +314,13 @@ export default function Dashboard() {
           </div>
 
           <Card className="border border-border bg-card shadow-none">
-            <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <div>
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Market Ticker (Live Holdings)</CardTitle>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/investments')} className="h-7 text-[10px] uppercase font-bold text-primary">Portfolio Auditor</Button>
+            <CardHeader className="flex flex-row items-center justify-between pb-4 border-b">
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" /> Live Holding Auditor
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/investments')} className="h-7 text-[10px] uppercase font-bold text-primary">Full Portfolio</Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {isInvestmentsLoading ? (
                 <div className="h-20 flex items-center justify-center">
                   <Terminal className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -313,20 +328,20 @@ export default function Dashboard() {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Security</TableHead>
-                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Classification</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Equity (USD)</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Position Size</TableHead>
+                    <TableRow className="hover:bg-transparent border-border bg-muted/10">
+                      <TableHead className="text-[10px] uppercase tracking-wider h-10 px-6">Security</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Class</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Valuation (USD)</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10 px-6">Position Size</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {investments?.slice(0, 8).map((inv) => (
+                    {investments?.slice(0, 10).map((inv) => (
                       <TableRow key={inv.id} className="border-border hover:bg-muted/30">
-                        <TableCell className="py-3">
+                        <TableCell className="py-3 px-6">
                           <div className="flex flex-col">
                             <span className="font-bold text-sm tracking-tight">{inv.name}</span>
-                            <span className="text-[10px] font-mono text-muted-foreground">{inv.symbol}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground uppercase">{inv.symbol}</span>
                           </div>
                         </TableCell>
                         <TableCell className="py-3">
@@ -334,18 +349,18 @@ export default function Dashboard() {
                             {inv.type}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono font-semibold text-sm py-3 tabular-nums">
+                        <TableCell className="text-right font-mono font-bold text-sm py-3 tabular-nums">
                           ${((inv.currentMarketPricePerUnit * inv.quantity) * marketNoise).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="text-right font-mono text-xs py-3">
-                          {inv.quantity.toLocaleString()} Units
+                        <TableCell className="text-right font-mono text-xs py-3 px-6 text-muted-foreground">
+                          {inv.quantity.toLocaleString()} UNITS
                         </TableCell>
                       </TableRow>
                     ))}
                     {!investments?.length && (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground text-xs uppercase tracking-widest">
-                          Zero Asset Data Found
+                        <TableCell colSpan={4} className="text-center py-12 text-muted-foreground text-[10px] font-bold uppercase tracking-[0.3em] opacity-30">
+                          No Real-Time Asset Data Available
                         </TableCell>
                       </TableRow>
                     )}
