@@ -143,6 +143,23 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a financial transaction (Deposit, Bonus, Withdrawal) in an investor's ledger.",
+      "properties": {
+        "id": { "type": "string" },
+        "investorId": { "type": "string" },
+        "type": { "type": "string", "enum": ["Deposit", "Bonus", "Withdrawal", "Profit"] },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["Completed", "Pending", "Failed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "investorId", "type", "amount", "currency", "status", "createdAt"]
     }
   },
   "auth": {
@@ -170,6 +187,16 @@
             "$ref": "#/backend/entities/Investment"
           },
           "description": "Stores individual investments owned by a specific investor."
+        }
+      },
+      {
+        "path": "/investorProfiles/{investorId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Stores financial transactions for a specific investor."
         }
       }
     ]

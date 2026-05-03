@@ -15,7 +15,6 @@ service cloud.firestore {
 
     /**
      * @description Checks if the authenticated user has administrative privileges.
-     * We allow access if the user's document in investorProfiles has role == 'admin'.
      */
     function isAdmin() {
       return isSignedIn() && get(/databases/$(database)/documents/investorProfiles/$(request.auth.uid)).data.role == 'admin';
@@ -32,14 +31,13 @@ service cloud.firestore {
 
       match /investments/{investmentId} {
         allow get, list: if isOwner(investorId) || isAdmin();
-        allow create: if isOwner(investorId);
-        allow update: if isOwner(investorId) || isAdmin();
-        allow delete: if isOwner(investorId) || isAdmin();
+        allow create: if isOwner(investorId) || isAdmin();
+        allow update, delete: if isOwner(investorId) || isAdmin();
       }
 
-      match /portfolioDailyMetrics/{metricId} {
+      match /transactions/{transactionId} {
         allow get, list: if isOwner(investorId) || isAdmin();
-        allow create, update, delete: if isOwner(investorId) || isAdmin();
+        allow create, update, delete: if isAdmin();
       }
     }
   }

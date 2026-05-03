@@ -10,7 +10,8 @@ import {
   LogOut,
   User,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  History
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,7 +32,7 @@ import { doc } from "firebase/firestore";
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Briefcase, label: "Investments", href: "/investments" },
-  { icon: PieChart, label: "Allocation", href: "/allocation" },
+  { icon: History, label: "Transactions", href: "/transactions" },
   { icon: TrendingUp, label: "Performance", href: "/performance" },
 ];
 
@@ -99,10 +100,10 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={pathname === "/admin"}
+                  isActive={pathname === "/admin" || pathname.startsWith("/admin/investor")}
                   tooltip="Control Panel"
                   className={`transition-none h-10 ${
-                    pathname === "/admin" 
+                    pathname === "/admin" || pathname.startsWith("/admin/investor")
                       ? "bg-destructive/10 text-destructive border-r-2 border-destructive rounded-none" 
                       : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                   }`}
