@@ -36,7 +36,7 @@ export default function LoginPage() {
     if (!email || !password || (isRegistering && !username)) {
       toast({
         variant: "destructive",
-        title: "Authentication Error",
+        title: "Error",
         description: "Please provide all required credentials.",
       });
       return;
@@ -79,29 +79,29 @@ export default function LoginPage() {
             <Shield className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-widest text-foreground uppercase">PROFITABLEFIRM</h1>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Investor Terminal</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Portfolio Manager</p>
         </div>
 
         <Card className="border-border bg-card shadow-2xl">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-xl font-bold tracking-tight">
-              {isRegistering ? "Initialize Investor Profile" : "Identity Verification"}
+              {isRegistering ? "Create Account" : "Login"}
             </CardTitle>
             <CardDescription className="text-xs uppercase tracking-wider">
-              {isRegistering ? "Register your institutional account" : "Enter authorized credentials to proceed"}
+              {isRegistering ? "Register your new account" : "Enter your credentials to access your portfolio"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleAuth} className="space-y-4">
               {isRegistering && (
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Username / Identity</Label>
+                  <Label htmlFor="username" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Username</Label>
                   <div className="relative">
                     <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="username"
                       type="text"
-                      placeholder="investor_01"
+                      placeholder="username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="pl-10 bg-background border-border text-sm focus-visible:ring-primary"
@@ -111,13 +111,13 @@ export default function LoginPage() {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Resource Identifier (Email)</Label>
+                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="name@firm.com"
+                    placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-background border-border text-sm focus-visible:ring-primary"
@@ -126,7 +126,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Access Token (Password)</Label>
+                <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -140,7 +140,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <Button type="submit" className="w-full h-11 bg-primary text-primary-foreground font-bold uppercase tracking-widest hover:bg-primary/90">
-                {isRegistering ? "Create Investor Account" : "Authorize Session"}
+                {isRegistering ? "Sign Up" : "Login"}
               </Button>
             </form>
           </CardContent>
@@ -149,11 +149,10 @@ export default function LoginPage() {
               onClick={() => setIsRegistering(!isRegistering)}
               className="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline"
             >
-              {isRegistering ? "Switch to existing session" : "Initialize new investor identity"}
+              {isRegistering ? "Already have an account? Login" : "Don't have an account? Sign Up"}
             </button>
             <p className="text-[9px] text-center leading-relaxed text-muted-foreground uppercase tracking-tighter opacity-50">
-              Authorized personnel only. Access is monitored and logged. <br />
-              System Version: 2.4.0-SECURE
+              Secured access for authorized users.
             </p>
           </CardFooter>
         </Card>

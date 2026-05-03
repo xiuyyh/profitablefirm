@@ -84,20 +84,20 @@ export default function Dashboard() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search instrument identifier..."
+                placeholder="Search investments..."
                 className="h-8 pl-8 bg-background border-border text-xs focus-visible:ring-primary"
               />
             </div>
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="outline" className="text-[10px] uppercase border-primary/30 text-primary bg-primary/5">
-              Secure Terminal 2.4.0
+              Secure Session
             </Badge>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
               <Bell className="h-4 w-4" />
             </Button>
             <div className="h-7 w-7 rounded bg-muted flex items-center justify-center text-[10px] font-bold border border-border">
-              {user.email?.substring(0, 2).toUpperCase() || "IN"}
+              {user.email?.substring(0, 2).toUpperCase() || "US"}
             </div>
           </div>
         </header>
@@ -107,40 +107,40 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Portfolio Overview</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Overview</span>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight">Executive Dashboard</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => router.push('/investments')} className="h-8 px-4 text-xs font-bold bg-primary text-primary-foreground uppercase tracking-wider">
-                <PlusCircle className="h-3.5 w-3.5 mr-2" /> Execute Order
+                <PlusCircle className="h-3.5 w-3.5 mr-2" /> Add Investment
               </Button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard 
-              title="AUM (Total Portfolio)" 
+              title="Total Value" 
               value={`$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
               trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(1)) : undefined} 
               icon={DollarSign}
               variant="default"
             />
             <MetricCard 
-              title="Unrealized P&L" 
+              title="Total Gain" 
               value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
               trend={pnlPercentage} 
               icon={TrendingUp}
             />
             <MetricCard 
-              title="Daily Variance" 
+              title="Daily Change" 
               value="+$0.00" 
               trend={0} 
               icon={Activity}
-              trendLabel="T-0"
+              trendLabel="TODAY"
             />
             <MetricCard 
-              title="Total Positions" 
+              title="Investments" 
               value={investments?.length.toString() || "0"} 
               icon={Briefcase}
             />
@@ -153,14 +153,14 @@ export default function Dashboard() {
             <div className="space-y-6">
               <Card className="border border-border bg-card shadow-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Diversification Matrix</CardTitle>
+                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Allocation</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {[
-                    { label: "Equities", value: 100, color: "bg-primary" },
-                    { label: "Fixed Income", value: 0, color: "bg-muted-foreground" },
-                    { label: "Liquidity", value: 0, color: "bg-primary/40" },
-                    { label: "Alternative", value: 0, color: "bg-muted" },
+                    { label: "Stocks", value: 100, color: "bg-primary" },
+                    { label: "Bonds", value: 0, color: "bg-muted-foreground" },
+                    { label: "Cash", value: 0, color: "bg-primary/40" },
+                    { label: "Other", value: 0, color: "bg-muted" },
                   ].map((asset) => (
                     <div key={asset.label} className="space-y-1.5">
                       <div className="flex justify-between text-[11px] uppercase tracking-tight">
@@ -181,12 +181,12 @@ export default function Dashboard() {
               <Card className="border border-primary/20 bg-primary/5 text-primary">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                    <Activity className="h-3 w-3" /> System Insight
+                    <Activity className="h-3 w-3" /> System Status
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-[13px] font-medium leading-relaxed italic opacity-90">
-                    "Live market data synchronization active. Portfolio metrics are being aggregated from Firestore real-time streams."
+                    "All metrics are synced with real-time market data."
                   </p>
                 </CardContent>
               </Card>
@@ -196,9 +196,9 @@ export default function Dashboard() {
           <Card className="border border-border bg-card shadow-none">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div>
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Primary Positions</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recent Investments</CardTitle>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/investments')} className="h-7 text-[10px] uppercase font-bold text-primary">Manage All</Button>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/investments')} className="h-7 text-[10px] uppercase font-bold text-primary">View All</Button>
             </CardHeader>
             <CardContent>
               {isInvestmentsLoading ? (
@@ -209,9 +209,9 @@ export default function Dashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border">
-                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Identifier</TableHead>
-                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Classification</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Fair Value</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Name</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Type</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Value</TableHead>
                       <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Quantity</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -240,7 +240,7 @@ export default function Dashboard() {
                     {!investments?.length && (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center py-8 text-muted-foreground text-xs uppercase tracking-widest">
-                          No active positions found in terminal
+                          No investments found
                         </TableCell>
                       </TableRow>
                     )}

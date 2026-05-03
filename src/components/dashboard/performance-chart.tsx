@@ -1,3 +1,4 @@
+
 "use client";
 
 import { 
@@ -33,7 +34,7 @@ const data = [
 
 const chartConfig = {
   value: {
-    label: "VALUATION",
+    label: "Value",
     color: "hsl(var(--primary))",
   },
 } satisfies ChartConfig;
@@ -42,7 +43,7 @@ export function PerformanceChart() {
   return (
     <Card className="border border-border bg-card shadow-none h-full">
       <CardHeader className="pb-4">
-        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Historical Performance Analysis</CardTitle>
+        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Performance Over Time</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[300px] w-full">

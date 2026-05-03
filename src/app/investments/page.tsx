@@ -91,7 +91,7 @@ export default function InvestmentsPage() {
       type: newAsset.type,
       quantity: Number(newAsset.quantity),
       purchasePricePerUnit: Number(newAsset.price),
-      currentMarketPricePerUnit: Number(newAsset.price), // Initializing with purchase price
+      currentMarketPricePerUnit: Number(newAsset.price),
       currency: "USD",
       purchaseDate: serverTimestamp(),
       lastPriceUpdate: serverTimestamp(),
@@ -116,7 +116,7 @@ export default function InvestmentsPage() {
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
-            <h1 className="text-xl font-bold">Positions Terminal</h1>
+            <h1 className="text-xl font-bold">Investments</h1>
           </div>
           <div className="flex items-center gap-4">
             <Button variant="outline" size="sm" className="h-8 border-border uppercase text-[10px] font-bold tracking-widest">
@@ -126,14 +126,14 @@ export default function InvestmentsPage() {
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="h-8 px-4 bg-primary text-primary-foreground font-bold uppercase text-[10px] tracking-widest">
-                  <Plus className="h-3 w-3 mr-2" /> Add Asset
+                  <Plus className="h-3 w-3 mr-2" /> Add Investment
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-card border-border sm:max-w-[425px]">
                 <DialogHeader>
-                  <DialogTitle className="uppercase tracking-widest text-sm font-bold">New Asset Registration</DialogTitle>
+                  <DialogTitle className="uppercase tracking-widest text-sm font-bold">Add New Investment</DialogTitle>
                   <DialogDescription className="text-xs uppercase tracking-tight text-muted-foreground">
-                    Register a new financial instrument into your institutional portfolio.
+                    Enter the details of your new investment below.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -148,7 +148,7 @@ export default function InvestmentsPage() {
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="symbol" className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Symbol</Label>
+                    <Label htmlFor="symbol" className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ticker</Label>
                     <Input
                       id="symbol"
                       value={newAsset.symbol}
@@ -161,13 +161,13 @@ export default function InvestmentsPage() {
                     <Label htmlFor="type" className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Type</Label>
                     <Select value={newAsset.type} onValueChange={(v) => setNewAsset({ ...newAsset, type: v })}>
                       <SelectTrigger className="col-span-3 bg-background border-border">
-                        <SelectValue placeholder="Classification" />
+                        <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
-                        <SelectItem value="Stock">Stock / Equity</SelectItem>
-                        <SelectItem value="ETF">ETF / Index</SelectItem>
-                        <SelectItem value="Crypto">Crypto Asset</SelectItem>
-                        <SelectItem value="Bond">Fixed Income</SelectItem>
+                        <SelectItem value="Stock">Stock</SelectItem>
+                        <SelectItem value="ETF">ETF</SelectItem>
+                        <SelectItem value="Crypto">Crypto</SelectItem>
+                        <SelectItem value="Bond">Bond</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -195,7 +195,7 @@ export default function InvestmentsPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleAddAsset} className="w-full bg-primary font-bold uppercase tracking-widest text-[10px]">Execute Order</Button>
+                  <Button onClick={handleAddAsset} className="w-full bg-primary font-bold uppercase tracking-widest text-[10px]">Add Investment</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -209,7 +209,7 @@ export default function InvestmentsPage() {
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    placeholder="Search instrument terminal..."
+                    placeholder="Search investments..."
                     className="pl-9 bg-background border-border h-9 text-xs focus-visible:ring-primary"
                   />
                 </div>
@@ -229,12 +229,12 @@ export default function InvestmentsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/20 border-border">
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Asset Identifier</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Classification</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Asset</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Type</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Quantity</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Acquisition Cost</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Fair Value</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Total P&L</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Purchase Price</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Current Price</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Gain/Loss</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -275,12 +275,11 @@ export default function InvestmentsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-card border-border">
-                                <DropdownMenuLabel className="text-[10px] uppercase font-bold">Terminal Actions</DropdownMenuLabel>
+                                <DropdownMenuLabel className="text-[10px] uppercase font-bold">Actions</DropdownMenuLabel>
                                 <DropdownMenuItem className="text-xs uppercase">View History</DropdownMenuItem>
-                                <DropdownMenuItem className="text-xs uppercase">Recalculate Beta</DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-border" />
                                 <DropdownMenuItem onClick={() => handleDelete(inv.id)} className="text-xs uppercase text-destructive font-bold">
-                                  Terminate Position
+                                  Delete Investment
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -293,7 +292,7 @@ export default function InvestmentsPage() {
                         <TableCell colSpan={7} className="text-center py-20">
                           <div className="flex flex-col items-center gap-2 opacity-50">
                             <Terminal className="h-6 w-6" />
-                            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">No Active Positions Detected</span>
+                            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">No investments found</span>
                           </div>
                         </TableCell>
                       </TableRow>

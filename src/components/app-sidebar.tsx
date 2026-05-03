@@ -1,3 +1,4 @@
+
 "use client";
 
 import { 
@@ -26,8 +27,8 @@ import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Terminal", href: "/" },
-  { icon: Briefcase, label: "Positions", href: "/investments" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+  { icon: Briefcase, label: "Investments", href: "/investments" },
   { icon: PieChart, label: "Allocation", href: "/allocation" },
   { icon: TrendingUp, label: "Performance", href: "/performance" },
 ];
@@ -80,7 +81,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild tooltip="Profile" className="text-muted-foreground hover:text-foreground h-9">
               <Link href="/profile">
                 <User className="h-4 w-4" />
-                <span className="text-xs uppercase tracking-tight">User Profile</span>
+                <span className="text-xs uppercase tracking-tight">Profile</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -88,7 +89,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild tooltip="Settings" className="text-muted-foreground hover:text-foreground h-9">
               <Link href="/settings">
                 <Settings className="h-4 w-4" />
-                <span className="text-xs uppercase tracking-tight">System Configuration</span>
+                <span className="text-xs uppercase tracking-tight">Settings</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -102,7 +103,7 @@ export function AppSidebar() {
               className="w-full text-muted-foreground hover:text-destructive h-9"
             >
               <LogOut className="h-4 w-4" />
-              <span className="text-xs uppercase tracking-tight">Terminate Session</span>
+              <span className="text-xs uppercase tracking-tight">Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
