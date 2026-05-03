@@ -110,7 +110,7 @@ export default function InvestmentsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <>
       <AppSidebar />
       <SidebarInset className="w-full">
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
@@ -202,7 +202,7 @@ export default function InvestmentsPage() {
           </div>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 w-full">
+        <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
           <Card className="border-border bg-card shadow-none">
             <CardHeader className="pb-4 border-b">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -304,6 +304,6 @@ export default function InvestmentsPage() {
           </Card>
         </main>
       </SidebarInset>
-    </div>
+    </>
   );
 }

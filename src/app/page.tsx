@@ -46,7 +46,6 @@ export default function Dashboard() {
   const router = useRouter();
   const [isProcessingYield, setIsProcessingYield] = useState(false);
   
-  // UI Volatility Ticker state - High frequency for live market feel
   const [marketNoise, setMarketNoise] = useState(1);
 
   useEffect(() => {
@@ -55,17 +54,14 @@ export default function Dashboard() {
     }
   }, [user, isUserLoading, router]);
 
-  // High-Frequency Market Ticker Simulation
   useEffect(() => {
     const interval = setInterval(() => {
-      // Fluctuation between -0.15% and +0.15% every 500ms for a very active feel
-      const noise = 0.9985 + (Math.random() * 0.003);
+      const noise = 0.995 + (Math.random() * 0.01);
       setMarketNoise(noise);
     }, 500);
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch full profile for yield config
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, "investorProfiles", user.uid);
@@ -73,7 +69,6 @@ export default function Dashboard() {
 
   const { data: profile } = useDoc(profileRef);
 
-  // Fetch Investments
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, "investorProfiles", user.uid, "investments");
@@ -81,7 +76,6 @@ export default function Dashboard() {
 
   const { data: investments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
 
-  // Fetch Transactions for Ledger Balance
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, "investorProfiles", user.uid, "transactions");
@@ -89,7 +83,6 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // Yield Accrual Logic with High-Frequency Updates (Every 1 Minute)
   useEffect(() => {
     if (profile?.autoProfitEnabled && investments && investments.length > 0 && !isProcessingYield) {
       const interval = setInterval(() => {
@@ -100,16 +93,12 @@ export default function Dashboard() {
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
 
-        // Process if at least 60 seconds have passed
         if (secondsPassed >= 60 && !isProcessingYield) { 
           setIsProcessingYield(true);
           
-          // Calculate the exact portion of the daily profit for the elapsed time
           const dayFraction = secondsPassed / (24 * 3600);
           const baseProfitSlice = profile.dailyProfitAmount * dayFraction;
-          
-          // Real Trading Simulation variance: -20% to +220%
-          const varianceFactor = -0.2 + (Math.random() * 2.4);
+          const varianceFactor = 0.8 + (Math.random() * 0.4);
           const profitToApply = baseProfitSlice * varianceFactor;
 
           const targets = investments.filter(inv => inv.type === profile.profitAssetType);
@@ -137,13 +126,12 @@ export default function Dashboard() {
             setIsProcessingYield(false);
           }
         }
-      }, 30000); // Pulse check every 30 seconds
+      }, 30000);
       
       return () => clearInterval(interval);
     }
   }, [profile, investments, firestore, user, isProcessingYield]);
 
-  // Derived Values
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -159,13 +147,10 @@ export default function Dashboard() {
     return investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // Apply Live Ticker Noise to the entire Equity stack
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
-  
   const unrealizedPnL = totalAccountEquity - (totalCost + ledgerBalance);
   const pnlPercentage = (totalCost + ledgerBalance) > 0 ? (unrealizedPnL / (totalCost + ledgerBalance)) * 100 : 0;
 
-  // Real Asset Allocation
   const allocation = useMemo(() => {
     if (!investments || baseInvestmentValue === 0) return [];
     const types = ["Crypto", "Stock", "Forex", "Bond", "ETF"];
@@ -185,7 +170,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground font-body antialiased">
+    <>
       <AppSidebar />
       <SidebarInset className="flex flex-col w-full">
         <header className="flex h-14 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
@@ -217,7 +202,7 @@ export default function Dashboard() {
           </div>
         </header>
         
-        <main className="flex-1 p-6 space-y-6 w-full">
+        <main className="flex-1 p-6 space-y-6 w-full max-w-none">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -351,6 +336,6 @@ export default function Dashboard() {
           </Card>
         </main>
       </SidebarInset>
-    </div>
+    </>
   );
 }

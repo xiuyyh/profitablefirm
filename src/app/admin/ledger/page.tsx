@@ -42,7 +42,6 @@ export default function GlobalLedgerPage() {
   const firestore = useFirestore();
   const router = useRouter();
 
-  // Admin Check
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, "investorProfiles", user.uid);
@@ -50,7 +49,6 @@ export default function GlobalLedgerPage() {
 
   const { data: profile } = useDoc(profileRef);
 
-  // Fetch all transactions using collectionGroup (Requires an index)
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, "transactions"), orderBy("createdAt", "desc"));
@@ -76,7 +74,7 @@ export default function GlobalLedgerPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <>
       <AppSidebar />
       <SidebarInset className="w-full">
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
@@ -95,7 +93,7 @@ export default function GlobalLedgerPage() {
           </div>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 w-full">
+        <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="bg-destructive/5 border-destructive/20 shadow-none">
               <CardContent className="pt-6">
@@ -203,6 +201,6 @@ export default function GlobalLedgerPage() {
           </Card>
         </main>
       </SidebarInset>
-    </div>
+    </>
   );
 }

@@ -42,7 +42,6 @@ export default function AdminControlPanel() {
   const firestore = useFirestore();
   const router = useRouter();
 
-  // Check admin privileges
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, "investorProfiles", user.uid);
@@ -75,7 +74,7 @@ export default function AdminControlPanel() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground font-body">
+    <>
       <AppSidebar />
       <SidebarInset className="w-full">
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
@@ -92,7 +91,7 @@ export default function AdminControlPanel() {
           </Badge>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 w-full">
+        <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             <Activity className="h-3 w-3" />
             System Overview
@@ -204,6 +203,6 @@ export default function AdminControlPanel() {
           </Card>
         </main>
       </SidebarInset>
-    </div>
+    </>
   );
 }

@@ -71,7 +71,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     assetType: "Crypto"
   });
   
-  // Track if we have initialized the form with DB data to prevent real-time overwrites
   const [isInitialized, setIsInitialized] = useState(false);
 
   const [newTransaction, setNewTransaction] = useState({
@@ -80,7 +79,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     description: ""
   });
 
-  // Check admin privileges
   const adminProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, "investorProfiles", user.uid);
@@ -88,7 +86,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
   const { data: adminProfile } = useDoc(adminProfileRef);
 
-  // Target investor data
   const targetProfileRef = useMemoFirebase(() => {
     if (!firestore || !investorId) return null;
     return doc(firestore, "investorProfiles", investorId);
@@ -96,7 +93,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
   const { data: investorProfile, isLoading: isProfileLoading } = useDoc(targetProfileRef);
 
-  // Initialize form state only once when the profile loads
   useEffect(() => {
     if (investorProfile && !isInitialized) {
       setYieldConfig({
@@ -202,7 +198,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground font-body">
+    <>
       <AppSidebar />
       <SidebarInset className="w-full">
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
@@ -223,7 +219,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
           </Badge>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 w-full">
+        <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border pb-6">
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-2xl font-bold text-primary">
@@ -517,6 +513,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
           </Tabs>
         </main>
       </SidebarInset>
-    </div>
+    </>
   );
 }

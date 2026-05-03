@@ -45,7 +45,7 @@ export default function TransactionsPage() {
   const { data: transactions, isLoading } = useCollection(transactionsQuery);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <>
       <AppSidebar />
       <SidebarInset className="w-full">
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
@@ -62,7 +62,7 @@ export default function TransactionsPage() {
           </Badge>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 w-full">
+        <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4">
             <ShieldCheck className="h-3 w-3" />
             Verified Financial History
@@ -136,6 +136,6 @@ export default function TransactionsPage() {
           </Card>
         </main>
       </SidebarInset>
-    </div>
+    </>
   );
 }
