@@ -56,6 +56,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
+      // High-frequency micro-fluctuations for balance updates
       const noise = 0.995 + (Math.random() * 0.01);
       setMarketNoise(noise);
     }, 500);
@@ -93,11 +94,14 @@ export default function Dashboard() {
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
 
+        // ACCRUAL LOGIC: Trigger profit distribution every 60 seconds
         if (secondsPassed >= 60 && !isProcessingYield) { 
           setIsProcessingYield(true);
           
           const dayFraction = secondsPassed / (24 * 3600);
           const baseProfitSlice = profile.dailyProfitAmount * dayFraction;
+          
+          // Mimick real trading: variance between 80% and 120%
           const varianceFactor = 0.8 + (Math.random() * 0.4);
           const profitToApply = baseProfitSlice * varianceFactor;
 
@@ -126,7 +130,7 @@ export default function Dashboard() {
             setIsProcessingYield(false);
           }
         }
-      }, 30000);
+      }, 30000); // Check every 30s
       
       return () => clearInterval(interval);
     }
@@ -147,6 +151,7 @@ export default function Dashboard() {
     return investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
+  // LIVE CALCULATED EQUITY
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
   const unrealizedPnL = totalAccountEquity - (totalCost + ledgerBalance);
   const pnlPercentage = (totalCost + ledgerBalance) > 0 ? (unrealizedPnL / (totalCost + ledgerBalance)) * 100 : 0;
@@ -191,11 +196,6 @@ export default function Dashboard() {
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-[9px] font-bold uppercase tracking-widest text-green-500">Live Network</span>
             </div>
-            {profile?.autoProfitEnabled && (
-              <Badge variant="outline" className="text-[10px] uppercase border-yellow-500/30 text-yellow-500 bg-yellow-500/5">
-                <Zap className="h-3 w-3 mr-1" /> Yield Active
-              </Badge>
-            )}
             <div className="h-7 w-7 rounded bg-muted flex items-center justify-center text-[10px] font-bold border border-border">
               {user.email?.substring(0, 2).toUpperCase() || "US"}
             </div>

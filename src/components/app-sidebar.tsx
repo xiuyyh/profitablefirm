@@ -71,11 +71,11 @@ export function AppSidebar() {
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border">
       <SidebarHeader className="p-6">
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
           <span className="text-[10px] font-black tracking-[0.3em] text-primary/70 uppercase">
             {isAdmin ? "Admin Terminal" : "Investor Terminal"}
           </span>
-          <span className="text-sm font-bold tracking-widest text-foreground group-data-[collapsible=icon]:hidden uppercase">
+          <span className="text-sm font-bold tracking-widest text-foreground uppercase">
             PROFITABLEFIRM
           </span>
         </div>
