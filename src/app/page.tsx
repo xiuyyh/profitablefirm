@@ -100,7 +100,7 @@ export default function Dashboard() {
     return assetCostBasis + netCashInjected;
   }, [investments, transactions]);
 
-  // OFFLINE CATCH-UP & LADDER CLIMBING ENGINE v5
+  // INSTITUTIONAL MOMENTUM ENGINE (Ladder Climbing v5)
   useEffect(() => {
     if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user && netExternalCapital > 0) {
       const interval = setInterval(() => {
@@ -110,29 +110,29 @@ export default function Dashboard() {
           : new Date(profile.createdAt?.seconds * 1000 || Date.now());
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
-        const stepSize = 60; // 1-minute resolution for accrual
+        const stepSize = 60; // 1-minute resolution
 
         if (secondsPassed >= stepSize && !isProcessingYield) { 
           setIsProcessingYield(true);
           
-          const stepsToProcess = Math.min(Math.floor(secondsPassed / stepSize), 1440); // Max 1 day catch-up per burst
+          const stepsToProcess = Math.min(Math.floor(secondsPassed / stepSize), 1440);
           let cumulativeProfit = 0;
           let currentStreak = accrualStreak.current;
 
-          // DETERMINISTIC STEP SIMULATION
+          // DETERMINISTIC STEP SIMULATION (80/20 Growth Bias)
           for (let i = 0; i < stepsToProcess; i++) {
             const baseProfitPerStep = (profile.dailyProfitAmount || 0) / (24 * 60);
             let multiplier = 1;
 
             if (currentStreak >= 5) {
-              multiplier = -1.2; // Pullback protocol (approx 1%)
+              multiplier = -1.2; // 1.0% Retracement protocol
               currentStreak = 0;
             } else {
               if (Math.random() > 0.2) {
-                multiplier = 1.8; // Momentum Up (+0.8% weighted)
+                multiplier = 1.8; // Momentum Up (+0.8% weight)
                 currentStreak += 1;
               } else {
-                multiplier = 0.8; // Momentum Stabilize (+0.2% weighted)
+                multiplier = 0.8; // Momentum Stabilize (+0.2% weight)
                 currentStreak = 0;
               }
             }
@@ -162,7 +162,7 @@ export default function Dashboard() {
               type: 'Profit',
               amount: cumulativeProfit,
               currency: 'USD',
-              description: stepsToProcess > 1 ? `Offline Catch-up (${stepsToProcess}m)` : 'Neural Yield Accrual',
+              description: stepsToProcess > 1 ? `Offline Catch-up (${stepsToProcess}m)` : 'Real-Time Yield Distribution',
               status: 'Completed',
               createdAt: serverTimestamp()
             });
@@ -195,9 +195,11 @@ export default function Dashboard() {
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // DETERMINISTIC EQUITY CALCULATION (PnL = Total Equity - Cost Basis)
+  // DETERMINISTIC EQUITY CALCULATION
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
-  const netPnL = totalAccountEquity - netExternalCapital;
+  // Use a noise-free value for trend calculation to prevent "False Red"
+  const settledEquity = baseInvestmentValue + ledgerBalance;
+  const netPnL = settledEquity - netExternalCapital;
   const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
 
   const allocation = useMemo(() => {
@@ -288,7 +290,7 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <PerformanceChart currentTotal={totalAccountEquity} />
+              <PerformanceChart currentTotal={settledEquity} />
             </div>
             <div className="space-y-6">
               <Card className="border border-border bg-card/40 shadow-none border-glow">

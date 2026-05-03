@@ -177,7 +177,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
   // DETERMINISTIC LIVE EQUITY CALCULATION (Integrity Match with Dashboard)
   const liveAUM = (baseInvestmentValue + ledgerBalance) * marketNoise;
-  const netPnL = liveAUM - netExternalCapital;
+  const settledAUM = baseInvestmentValue + ledgerBalance;
+  const netPnL = settledAUM - netExternalCapital;
   const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
 
   const handleSaveYieldConfig = () => {
@@ -203,6 +204,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
     const type = yieldConfig.assetType;
     const colRef = collection(firestore, "investorProfiles", investorId, "investments");
+    const transRef = collection(firestore, "investorProfiles", investorId, "transactions");
 
     const assetData: Record<string, Array<{name: string, symbol: string, price: number}>> = {
       "Crypto": [
@@ -232,9 +234,16 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     };
 
     const selected = assetData[type] || assetData["Stock"];
+    
+    // CRITICAL FIX: To prevent AUM jumps, we "purchase" these assets using the user's ledger cash.
+    // If cash is low, we use a very small amount to maintain the "Ladder Climbing" realism.
+    const allocationPool = Math.max(ledgerBalance, 10); 
+    const perAssetAllocation = allocationPool / selected.length;
 
     selected.forEach((asset) => {
-      const quantity = Math.floor(Math.random() * 5) + 1;
+      // Quantity is derived from the allocation pool to prevent balance spikes
+      const quantity = perAssetAllocation / asset.price;
+
       addDocumentNonBlocking(colRef, {
         investorId,
         name: asset.name,
@@ -251,11 +260,22 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
       });
     });
 
+    // Record the allocation withdrawal to neutralize the AUM jump
+    addDocumentNonBlocking(transRef, {
+      investorId,
+      type: "Withdrawal",
+      amount: allocationPool,
+      currency: "USD",
+      description: `Neural Provisioning: ${type} Allocation`,
+      status: "Completed",
+      createdAt: serverTimestamp()
+    });
+
     setTimeout(() => {
       setIsProvisioning(false);
       toast({
         title: "Portfolio Provisioned",
-        description: `Neural Link loaded ${selected.length} assets. Capital basis automatically reconciled.`,
+        description: `Neural Link loaded ${selected.length} assets. Capital basis adjusted by $${allocationPool.toFixed(2)} to maintain equity integrity.`,
       });
     }, 1500);
   };
