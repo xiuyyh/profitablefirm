@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { collection, query, limit, doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function Dashboard() {
   const { user, isUserLoading } = useUser();
@@ -56,7 +56,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // High-frequency micro-fluctuations (±0.2% to allow profit trend to be visible)
+      // Very high frequency micro-fluctuations (±0.2%)
       const noise = 0.998 + (Math.random() * 0.004);
       setMarketNoise(noise);
     }, 500);
@@ -84,8 +84,9 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
+  // YIELD ENGINE: LADDER CLIMBING LOGIC
   useEffect(() => {
-    if (profile?.autoProfitEnabled && investments && investments.length > 0 && !isProcessingYield) {
+    if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user) {
       const interval = setInterval(() => {
         const now = new Date();
         const lastAccrual = profile.lastYieldAccrualAt 
@@ -94,47 +95,60 @@ export default function Dashboard() {
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
 
-        // ACCRUAL LOGIC: Trigger profit distribution every 60 seconds
+        // ACCRUAL LOGIC: Trigger every 60 seconds
         if (secondsPassed >= 60 && !isProcessingYield) { 
           setIsProcessingYield(true);
           
           const dayFraction = secondsPassed / (24 * 3600);
-          const baseProfitSlice = profile.dailyProfitAmount * dayFraction;
+          const baseProfitSlice = (profile.dailyProfitAmount || 0) * dayFraction;
           
-          // LADDER CLIMBING LOGIC: 70% growth / 30% pullback
-          const isGrowthCycle = Math.random() > 0.3;
+          // MOMENTUM BIAS: 80% Growth / 20% Small Pullback or Flat
+          const isGrowthCycle = Math.random() > 0.2;
           const varianceFactor = isGrowthCycle 
-            ? (0.9 + Math.random() * 0.6)  // 90% to 150% of expected slice
-            : (Math.random() * 0.4 - 0.2); // -20% to 20% of expected slice (simulates pullback/stagnation)
+            ? (1.1 + Math.random() * 0.7)  // 110% to 180% of expected slice (climb)
+            : (Math.random() * 0.4 - 0.2); // -20% to 20% of expected slice (simulates realistic minor volatility)
             
           const profitToApply = baseProfitSlice * varianceFactor;
 
-          const targets = investments.filter(inv => inv.type === profile.profitAssetType);
+          // Determine where to apply profit
+          const targets = investments?.filter(inv => inv.type === profile.profitAssetType) || [];
           
           if (targets.length > 0) {
+            // Apply to existing asset prices (Visible on ticker)
             const target = targets[0];
             const profitPerUnit = profitToApply / target.quantity;
             const newPrice = target.currentMarketPricePerUnit + profitPerUnit;
 
-            const invRef = doc(firestore, "investorProfiles", user!.uid, "investments", target.id);
+            const invRef = doc(firestore, "investorProfiles", user.uid, "investments", target.id);
             updateDocumentNonBlocking(invRef, {
               currentMarketPricePerUnit: newPrice,
               lastPriceUpdate: serverTimestamp(),
               updatedAt: serverTimestamp()
             });
-
-            const profRef = doc(firestore, "investorProfiles", user!.uid);
-            updateDocumentNonBlocking(profRef, {
-              lastYieldAccrualAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            });
-            
-            setTimeout(() => setIsProcessingYield(false), 2000);
           } else {
-            setIsProcessingYield(false);
+            // No assets? Apply profit directly to the Ledger (Visible on balance)
+            const transRef = collection(firestore, "investorProfiles", user.uid, "transactions");
+            addDocumentNonBlocking(transRef, {
+              investorId: user.uid,
+              type: 'Profit',
+              amount: profitToApply,
+              currency: 'USD',
+              description: 'Algorithmic Yield Accrual',
+              status: 'Completed',
+              createdAt: serverTimestamp()
+            });
           }
+
+          // Update profile timestamp
+          const profRef = doc(firestore, "investorProfiles", user.uid);
+          updateDocumentNonBlocking(profRef, {
+            lastYieldAccrualAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          
+          setTimeout(() => setIsProcessingYield(false), 2000);
         }
-      }, 30000); // Check every 30s
+      }, 15000); // Check every 15s for precision
       
       return () => clearInterval(interval);
     }
@@ -155,7 +169,7 @@ export default function Dashboard() {
     return investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // LIVE CALCULATED EQUITY
+  // LIVE ACCOUNT EQUITY (Pulsing with noise)
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
   const unrealizedPnL = totalAccountEquity - (totalCost + ledgerBalance);
   const pnlPercentage = (totalCost + ledgerBalance) > 0 ? (unrealizedPnL / (totalCost + ledgerBalance)) * 100 : 0;
@@ -229,10 +243,11 @@ export default function Dashboard() {
               trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(2)) : undefined} 
               icon={DollarSign}
               variant="accent"
+              trendLabel="LIVE GAIN"
             />
             <MetricCard 
               title="Ledger Balance" 
-              value={`$${ledgerBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+              value={`$${ledgerBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={CreditCard}
               trendLabel="VERIFIED CASH"
             />
@@ -241,6 +256,7 @@ export default function Dashboard() {
               value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={Number(pnlPercentage.toFixed(2))} 
               icon={TrendingUp}
+              trendLabel="ACCOUNT GROWTH"
             />
             <MetricCard 
               title="Growth Rate" 

@@ -105,7 +105,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [investorProfile, isInitialized]);
 
-  // LIVE TICKER LOGIC (Matches Dashboard precision)
+  // LIVE TICKER LOGIC (Matches Dashboard frequency)
   useEffect(() => {
     const interval = setInterval(() => {
       const noise = 0.998 + (Math.random() * 0.004);
@@ -137,7 +137,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [user, isUserLoading, adminProfile, router]);
 
-  // REAL-TIME FINANCIAL CALCULATIONS
+  // REAL-TIME FINANCIAL CALCULATIONS (Ladder-Climbing Logic)
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -287,6 +287,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={Number(pnlPercentage.toFixed(2))}
               icon={TrendingUp}
+              trendLabel="REALIZED GROWTH"
             />
             <MetricCard 
               title="Asset Count" 
@@ -444,7 +445,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                             <TableCell>
                               <Badge variant="outline" className={`text-[9px] uppercase font-bold px-1.5 py-0 ${
                                 tx.type === 'Deposit' ? 'border-green-500/30 text-green-500' : 
-                                tx.type === 'Bonus' ? 'border-yellow-500/30 text-yellow-500' : 'border-red-500/30 text-red-500'
+                                tx.type === 'Bonus' ? 'border-yellow-500/30 text-yellow-500' : 
+                                tx.type === 'Profit' ? 'border-blue-500/30 text-blue-500' : 'border-red-500/30 text-red-500'
                               }`}>
                                 {tx.type}
                               </Badge>
