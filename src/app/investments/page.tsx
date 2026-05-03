@@ -202,7 +202,7 @@ export default function InvestmentsPage() {
           </div>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        <main className="p-6 md:p-8 space-y-6 w-full">
           <Card className="border-border bg-card shadow-none">
             <CardHeader className="pb-4 border-b">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

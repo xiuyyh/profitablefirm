@@ -92,7 +92,7 @@ export default function AdminControlPanel() {
           </Badge>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        <main className="p-6 md:p-8 space-y-6 w-full">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             <Activity className="h-3 w-3" />
             System Overview

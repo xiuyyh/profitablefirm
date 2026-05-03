@@ -217,7 +217,7 @@ export default function Dashboard() {
           </div>
         </header>
         
-        <main className="flex-1 p-6 space-y-6 max-w-[1600px] w-full">
+        <main className="flex-1 p-6 space-y-6 w-full">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -250,7 +250,7 @@ export default function Dashboard() {
             <MetricCard 
               title="Net Delta (PnL)" 
               value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-              trend={pnlPercentage} 
+              trend={Number(pnlPercentage.toFixed(2))} 
               icon={TrendingUp}
             />
             <MetricCard 

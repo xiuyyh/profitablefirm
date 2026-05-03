@@ -51,8 +51,6 @@ export default function GlobalLedgerPage() {
   const { data: profile } = useDoc(profileRef);
 
   // Fetch all transactions using collectionGroup (Requires an index)
-  // Note: For MVP simplicity without index, we could also fetch per user, 
-  // but collectionGroup is the standard for "Global Ledger".
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collectionGroup(firestore, "transactions"), orderBy("createdAt", "desc"));
@@ -97,7 +95,7 @@ export default function GlobalLedgerPage() {
           </div>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        <main className="p-6 md:p-8 space-y-6 w-full">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card className="bg-destructive/5 border-destructive/20 shadow-none">
               <CardContent className="pt-6">

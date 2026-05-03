@@ -223,7 +223,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
           </Badge>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        <main className="p-6 md:p-8 space-y-6 w-full">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border pb-6">
             <div className="flex items-center gap-4">
               <div className="h-16 w-16 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-2xl font-bold text-primary">
