@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,42 +25,32 @@ export function MetricCard({
 
   return (
     <Card className={cn(
-      "border-none shadow-sm transition-transform hover:scale-[1.02]",
-      variant === "accent" ? "bg-primary text-white" : "bg-white"
+      "border border-border bg-card shadow-none transition-colors hover:border-primary/50",
+      variant === "accent" ? "bg-primary/5 border-primary/20" : ""
     )}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between space-y-0 pb-4">
-          <p className={cn(
-            "text-sm font-medium",
-            variant === "accent" ? "text-white/70" : "text-muted-foreground"
-          )}>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between space-y-0 pb-3">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             {title}
           </p>
-          <div className={cn(
-            "p-2 rounded-lg",
-            variant === "accent" ? "bg-white/10" : "bg-secondary/10 text-secondary"
-          )}>
-            <Icon className="h-5 w-5" />
+          <div className="p-1.5 rounded bg-muted/50 border border-border">
+            <Icon className="h-3.5 w-3.5 text-primary" />
           </div>
         </div>
-        <div className="flex flex-col gap-1">
-          <h2 className="text-3xl font-bold tracking-tight">{value}</h2>
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-2xl font-bold tracking-tighter font-mono">{value}</h2>
           {trend !== undefined && (
             <div className="flex items-center gap-1.5 pt-1">
               <span className={cn(
-                "flex items-center text-xs font-semibold px-2 py-0.5 rounded-full",
+                "flex items-center text-[10px] font-mono font-bold px-1.5 py-0 rounded border",
                 isPositive 
-                  ? (variant === "accent" ? "bg-white/20 text-white" : "bg-green-100 text-green-700")
-                  : (variant === "accent" ? "bg-red-400/20 text-red-100" : "bg-red-100 text-red-700")
+                  ? "bg-green-500/10 text-green-500 border-green-500/20"
+                  : "bg-red-500/10 text-red-500 border-red-500/20"
               )}>
-                {isPositive ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
-                {Math.abs(trend)}%
+                {isPositive ? "+" : "-"}{Math.abs(trend)}%
               </span>
-              <span className={cn(
-                "text-xs",
-                variant === "accent" ? "text-white/60" : "text-muted-foreground"
-              )}>
-                {trendLabel || "vs last month"}
+              <span className="text-[10px] uppercase tracking-tighter text-muted-foreground">
+                {trendLabel || "PREV CLOSE"}
               </span>
             </div>
           )}

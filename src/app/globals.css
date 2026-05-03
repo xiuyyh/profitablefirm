@@ -1,60 +1,37 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 206 26% 94%; /* #EBF0F4 */
-    --foreground: 215 25% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
-    --primary: 212 66% 36%; /* #1F5799 */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 189 74% 51%; /* #27C5E0 */
-    --secondary-foreground: 215 25% 15%;
-    --muted: 210 20% 90%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 189 74% 51%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 20% 85%;
-    --input: 214 20% 85%;
-    --ring: 212 66% 36%;
-    --radius: 0.75rem;
-    --sidebar-background: 212 66% 36%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 189 74% 51%;
-    --sidebar-primary-foreground: 215 25% 15%;
-    --sidebar-accent: 212 66% 45%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 212 66% 45%;
-    --sidebar-ring: 189 74% 51%;
-  }
-
-  .dark {
-    --background: 215 25% 10%;
+    --background: 222 47% 4%; /* Near black institutional background */
     --foreground: 210 40% 98%;
-    --card: 215 25% 12%;
+    --card: 222 47% 7%;
     --card-foreground: 210 40% 98%;
-    --popover: 215 25% 12%;
+    --popover: 222 47% 7%;
     --popover-foreground: 210 40% 98%;
-    --primary: 189 74% 51%;
-    --primary-foreground: 215 25% 15%;
-    --secondary: 212 66% 36%;
+    --primary: 217.2 91.2% 59.8%; /* Sharp institutional blue */
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 215 25% 15%;
-    --muted-foreground: 215 16% 70%;
-    --accent: 189 74% 51%;
-    --accent-foreground: 215 25% 15%;
+    --muted: 217.2 32.6% 12.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 215 25% 20%;
-    --input: 215 25% 20%;
-    --ring: 189 74% 51%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    --radius: 0.3rem; /* Sharper corners for a more serious feel */
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 215 20.2% 65.1%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 12%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 15%;
+    --sidebar-ring: 224.3 76.3% 48%;
   }
 }
 
@@ -64,9 +41,26 @@
   }
   body {
     @apply bg-background text-foreground font-body;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
 .chart-container {
-  @apply transition-all duration-500 ease-in-out;
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Custom scrollbar for terminal feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent));
 }

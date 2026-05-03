@@ -1,4 +1,3 @@
-
 "use client";
 
 import { 
@@ -9,7 +8,8 @@ import {
   Settings, 
   LogOut,
   User,
-  ShieldCheck
+  ShieldCheck,
+  Terminal
 } from "lucide-react";
 import {
   Sidebar,
@@ -25,8 +25,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-  { icon: Briefcase, label: "Investments", href: "/investments" },
+  { icon: LayoutDashboard, label: "Terminal", href: "/" },
+  { icon: Briefcase, label: "Positions", href: "/investments" },
   { icon: PieChart, label: "Allocation", href: "/allocation" },
   { icon: TrendingUp, label: "Performance", href: "/performance" },
 ];
@@ -35,13 +35,13 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar variant="sidebar" collapsible="icon">
+    <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border">
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-primary font-bold text-xl">
-            PF
+          <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground">
+            <Terminal className="h-5 w-5" />
           </div>
-          <span className="text-xl font-bold text-white group-data-[collapsible=icon]:hidden">
+          <span className="text-sm font-bold tracking-widest text-foreground group-data-[collapsible=icon]:hidden uppercase">
             PROFITABLEFIRM
           </span>
         </div>
@@ -54,35 +54,35 @@ export function AppSidebar() {
                 asChild
                 isActive={pathname === item.href}
                 tooltip={item.label}
-                className={`transition-all duration-200 ${
+                className={`transition-none h-10 ${
                   pathname === item.href 
-                    ? "bg-secondary text-primary" 
-                    : "text-white/80 hover:bg-white/10 hover:text-white"
+                    ? "bg-primary/10 text-primary border-r-2 border-primary rounded-none" 
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 }`}
               >
                 <Link href={item.href}>
-                  <item.icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
+                  <item.icon className="h-4 w-4" />
+                  <span className="font-semibold text-xs uppercase tracking-wider">{item.label}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
-        <SidebarSeparator className="my-4 opacity-20" />
+        <SidebarSeparator className="my-6 opacity-10" />
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Profile" className="text-white/80 hover:bg-white/10">
+            <SidebarMenuButton asChild tooltip="Profile" className="text-muted-foreground hover:text-foreground h-9">
               <Link href="/profile">
-                <User className="h-5 w-5" />
-                <span>Profile</span>
+                <User className="h-4 w-4" />
+                <span className="text-xs uppercase tracking-tight">User Profile</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Settings" className="text-white/80 hover:bg-white/10">
+            <SidebarMenuButton asChild tooltip="Settings" className="text-muted-foreground hover:text-foreground h-9">
               <Link href="/settings">
-                <Settings className="h-5 w-5" />
-                <span>Settings</span>
+                <Settings className="h-4 w-4" />
+                <span className="text-xs uppercase tracking-tight">System Configuration</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -91,9 +91,9 @@ export function AppSidebar() {
       <SidebarFooter className="p-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="w-full text-white/80 hover:bg-destructive/20 hover:text-destructive-foreground">
-              <LogOut className="h-5 w-5" />
-              <span>Log out</span>
+            <SidebarMenuButton className="w-full text-muted-foreground hover:text-destructive h-9">
+              <LogOut className="h-4 w-4" />
+              <span className="text-xs uppercase tracking-tight">Terminate Session</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

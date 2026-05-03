@@ -1,11 +1,7 @@
-
 "use client";
 
 import { 
-  Line, 
-  LineChart, 
   ResponsiveContainer, 
-  Tooltip, 
   XAxis, 
   YAxis,
   CartesianGrid,
@@ -18,70 +14,69 @@ import {
   ChartTooltip, 
   ChartTooltipContent 
 } from "@/components/ui/chart";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const data = [
-  { date: "Jan", value: 45000 },
-  { date: "Feb", value: 47200 },
-  { date: "Mar", value: 46800 },
-  { date: "Apr", value: 49500 },
-  { date: "May", value: 52100 },
-  { date: "Jun", value: 51200 },
-  { date: "Jul", value: 54800 },
-  { date: "Aug", value: 58900 },
-  { date: "Sep", value: 57400 },
-  { date: "Oct", value: 61200 },
-  { date: "Nov", value: 64500 },
-  { date: "Dec", value: 68200 },
+  { date: "JAN", value: 45000 },
+  { date: "FEB", value: 47200 },
+  { date: "MAR", value: 46800 },
+  { date: "APR", value: 49500 },
+  { date: "MAY", value: 52100 },
+  { date: "JUN", value: 51200 },
+  { date: "JUL", value: 54800 },
+  { date: "AUG", value: 58900 },
+  { date: "SEP", value: 57400 },
+  { date: "OCT", value: 61200 },
+  { date: "NOV", value: 64500 },
+  { date: "DEC", value: 68200 },
 ];
 
 const chartConfig = {
   value: {
-    label: "Portfolio Value",
+    label: "VALUATION",
     color: "hsl(var(--primary))",
   },
 } satisfies ChartConfig;
 
 export function PerformanceChart() {
   return (
-    <Card className="border-none shadow-sm h-full">
-      <CardHeader className="flex flex-row items-center justify-between pb-8">
-        <div className="space-y-1">
-          <CardTitle className="text-xl font-bold">Historical Performance</CardTitle>
-          <CardDescription>Visualizing your wealth growth over time</CardDescription>
-        </div>
+    <Card className="border border-border bg-card shadow-none h-full">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Historical Performance Analysis</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-[350px] w-full">
-          <AreaChart data={data} margin={{ left: 12, right: 12, top: 12 }}>
+        <ChartContainer config={chartConfig} className="h-[300px] w-full">
+          <AreaChart data={data} margin={{ left: -10, right: 10, top: 10, bottom: 0 }}>
             <defs>
               <linearGradient id="fillValue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
                 <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" strokeOpacity={0.1} />
+            <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
             <XAxis
               dataKey="date"
               tickLine={false}
               axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => value}
+              tickMargin={12}
+              tick={{ fontSize: 9, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }}
             />
             <YAxis
               tickLine={false}
               axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+              tickMargin={12}
+              tick={{ fontSize: 9, fontWeight: 700, fill: "hsl(var(--muted-foreground))" }}
+              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`}
             />
-            <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+            <ChartTooltip content={<ChartTooltipContent className="bg-background border-border" />} />
             <Area
               dataKey="value"
               type="monotone"
               stroke="hsl(var(--primary))"
-              strokeWidth={3}
+              strokeWidth={2}
               fillOpacity={1}
               fill="url(#fillValue)"
+              animationDuration={1500}
             />
           </AreaChart>
         </ChartContainer>
