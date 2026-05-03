@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useUser, useFirestore } from "@/firebase";
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,15 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const profileRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, "investorProfiles", user.uid);
+  }, [db, user?.uid]);
+
+  const { data: profile } = useDoc(profileRef);
+
   useEffect(() => {
-    if (user && !isUserLoading) {
+    if (user && !isUserLoading && profile) {
       if (isPending) {
         toast({
           title: "Authentication Successful",
@@ -35,9 +42,15 @@ export default function LoginPage() {
         });
         setIsPending(false);
       }
-      router.push("/");
+      
+      // Redirect based on role
+      if (profile.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     }
-  }, [user, isUserLoading, router, isPending, isRegistering, toast]);
+  }, [user, isUserLoading, profile, router, isPending, isRegistering, toast]);
 
   useEffect(() => {
     if (userError && isPending) {
@@ -77,6 +90,7 @@ export default function LoginPage() {
         firstName: username,
         lastName: "",
         email: user.email,
+        role: "investor",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }, { merge: true });
@@ -186,9 +200,14 @@ export default function LoginPage() {
             >
               {isRegistering ? "Already have an account? Login" : "Don't have an account? Sign Up"}
             </button>
-            <p className="text-[9px] text-center leading-relaxed text-muted-foreground uppercase tracking-tighter opacity-50">
-              Secured access for authorized users.
-            </p>
+            <div className="flex flex-col items-center gap-2 mt-4 pt-4 border-t border-border w-full">
+               <button 
+                onClick={() => router.push("/admin/login")}
+                className="text-[9px] uppercase font-bold text-muted-foreground hover:text-destructive transition-colors tracking-[0.2em]"
+              >
+                Administrative Portal Access
+              </button>
+            </div>
           </CardFooter>
         </Card>
       </div>
