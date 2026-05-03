@@ -70,6 +70,9 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     amount: "0",
     assetType: "Crypto"
   });
+  
+  // Track if we have initialized the form with DB data to prevent real-time overwrites
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const [newTransaction, setNewTransaction] = useState({
     type: "Deposit",
@@ -93,15 +96,17 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
   const { data: investorProfile, isLoading: isProfileLoading } = useDoc(targetProfileRef);
 
+  // Initialize form state only once when the profile loads
   useEffect(() => {
-    if (investorProfile) {
+    if (investorProfile && !isInitialized) {
       setYieldConfig({
         enabled: investorProfile.autoProfitEnabled || false,
         amount: investorProfile.dailyProfitAmount?.toString() || "0",
         assetType: investorProfile.profitAssetType || "Crypto"
       });
+      setIsInitialized(true);
     }
-  }, [investorProfile]);
+  }, [investorProfile, isInitialized]);
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !investorId) return null;
