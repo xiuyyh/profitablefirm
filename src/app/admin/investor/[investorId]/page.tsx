@@ -176,7 +176,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // DETERMINISTIC LIVE EQUITY CALCULATION
+  // DETERMINISTIC LIVE EQUITY CALCULATION (Integrity Match with Dashboard)
   const liveAUM = (baseInvestmentValue + ledgerBalance) * marketNoise;
   const netPnL = liveAUM - netExternalCapital;
   const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;

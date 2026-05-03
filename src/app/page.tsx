@@ -54,7 +54,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // Ultra-subtle institutional noise (±0.1%)
+      // High-frequency institutional noise (±0.1%)
       const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
     }, 400);
@@ -82,7 +82,7 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // LEDGER ACCOUNTING (Liquid Cash On Hand)
+  // LEDGER ACCOUNTING (Verifiable Cash Reserves)
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -90,7 +90,7 @@ export default function Dashboard() {
     }, 0) || 0;
   }, [transactions]);
 
-  // CAPITAL INTEGRITY: Calculate cost basis of all holdings + net cash injected
+  // CAPITAL INTEGRITY: Cost basis of holdings + net cash injected
   const netExternalCapital = useMemo(() => {
     const assetCostBasis = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
     const netCashInjected = transactions?.reduce((sum, tx) => {
@@ -101,7 +101,7 @@ export default function Dashboard() {
     return assetCostBasis + netCashInjected;
   }, [investments, transactions]);
 
-  // INSTITUTIONAL MOMENTUM ENGINE (LADDER CLIMBING v4)
+  // OFFLINE CATCH-UP & LADDER CLIMBING ENGINE v5
   useEffect(() => {
     if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user && netExternalCapital > 0) {
       const interval = setInterval(() => {
@@ -111,40 +111,41 @@ export default function Dashboard() {
           : new Date(profile.createdAt?.seconds * 1000 || Date.now());
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
+        const stepSize = 60; // 1-minute resolution for accrual
 
-        // ACCRUE EVERY 60 SECONDS
-        if (secondsPassed >= 60 && !isProcessingYield) { 
+        if (secondsPassed >= stepSize && !isProcessingYield) { 
           setIsProcessingYield(true);
           
-          const dayFraction = secondsPassed / (24 * 3600);
-          const baseProfitSlice = (profile.dailyProfitAmount || 0) * dayFraction;
-          
-          /**
-           * LADDER CLIMBING PROTOCOL
-           * - Move up +0.8% of daily slice bias (80% weight)
-           * - Dip -0.2% of daily slice bias (20% weight)
-           * - After 5 steps of growth, trigger 1% pullback
-           */
-          let multiplier = 1;
-          if (accrualStreak.current >= 5) {
-            multiplier = -1.0; 
-            accrualStreak.current = 0;
-          } else {
-            if (Math.random() > 0.2) {
-              multiplier = 1.8; 
-              accrualStreak.current += 1;
+          const stepsToProcess = Math.min(Math.floor(secondsPassed / stepSize), 1440); // Max 1 day catch-up per burst
+          let cumulativeProfit = 0;
+          let currentStreak = accrualStreak.current;
+
+          // DETERMINISTIC STEP SIMULATION
+          for (let i = 0; i < stepsToProcess; i++) {
+            const baseProfitPerStep = (profile.dailyProfitAmount || 0) / (24 * 60);
+            let multiplier = 1;
+
+            if (currentStreak >= 5) {
+              multiplier = -1.2; // Pullback protocol (approx 1%)
+              currentStreak = 0;
             } else {
-              multiplier = 0.8; 
-              accrualStreak.current = 0;
+              if (Math.random() > 0.2) {
+                multiplier = 1.8; // Momentum Up (+0.8% weighted)
+                currentStreak += 1;
+              } else {
+                multiplier = 0.8; // Momentum Stabilize (+0.2% weighted)
+                currentStreak = 0;
+              }
             }
+            cumulativeProfit += baseProfitPerStep * multiplier;
           }
-            
-          const profitToApply = baseProfitSlice * multiplier;
+
+          accrualStreak.current = currentStreak;
           const targets = investments?.filter(inv => inv.type === profile.profitAssetType) || [];
           
           if (targets.length > 0) {
             targets.forEach(target => {
-              const portionProfit = profitToApply / targets.length;
+              const portionProfit = cumulativeProfit / targets.length;
               const profitPerUnit = portionProfit / target.quantity;
               const newPrice = target.currentMarketPricePerUnit + profitPerUnit;
 
@@ -160,9 +161,9 @@ export default function Dashboard() {
             addDocumentNonBlocking(transRef, {
               investorId: user.uid,
               type: 'Profit',
-              amount: profitToApply,
+              amount: cumulativeProfit,
               currency: 'USD',
-              description: 'Neural Yield Accrual',
+              description: stepsToProcess > 1 ? `Offline Catch-up (${stepsToProcess}m)` : 'Neural Yield Accrual',
               status: 'Completed',
               createdAt: serverTimestamp()
             });
@@ -174,7 +175,7 @@ export default function Dashboard() {
             updatedAt: serverTimestamp()
           });
           
-          setTimeout(() => setIsProcessingYield(false), 2000);
+          setTimeout(() => setIsProcessingYield(false), 1500);
         }
       }, 5000); 
       
@@ -195,7 +196,7 @@ export default function Dashboard() {
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // LIVE ACCOUNT EQUITY & PNL (Integrity Calculated)
+  // DETERMINISTIC EQUITY CALCULATION (PnL = Total Equity - Cost Basis)
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
   const netPnL = totalAccountEquity - netExternalCapital;
   const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
