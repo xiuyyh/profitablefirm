@@ -89,50 +89,63 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // Yield Accrual Logic with 20% Variance Protocol
+  // Yield Accrual Logic with High-Frequency Updates (Every 1 Minute)
   useEffect(() => {
     if (profile?.autoProfitEnabled && investments && investments.length > 0 && !isProcessingYield) {
-      const now = new Date();
-      const lastAccrual = profile.lastYieldAccrualAt 
-        ? new Date(profile.lastYieldAccrualAt.seconds * 1000) 
-        : new Date(profile.createdAt?.seconds * 1000 || Date.now());
+      const interval = setInterval(() => {
+        const now = new Date();
+        const lastAccrual = profile.lastYieldAccrualAt 
+          ? new Date(profile.lastYieldAccrualAt.seconds * 1000) 
+          : new Date(profile.createdAt?.seconds * 1000 || Date.now());
 
-      const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
-      const daysPassed = secondsPassed / (24 * 3600);
+        const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
 
-      // Process if at least 5 minutes have passed (0.0034 days)
-      if (daysPassed > 0.0034) { 
-        setIsProcessingYield(true);
-        
-        const baseProfit = profile.dailyProfitAmount * daysPassed;
-        
-        // 20% Variance Protocol
-        const varianceFactor = 0.8 + (Math.random() * 0.4);
-        const totalProfitToAccrue = baseProfit * varianceFactor;
-
-        const targets = investments.filter(inv => inv.type === profile.profitAssetType);
-        
-        if (targets.length > 0) {
-          const target = targets[0];
-          const profitPerUnit = totalProfitToAccrue / target.quantity;
-          const newPrice = target.currentMarketPricePerUnit + profitPerUnit;
-
-          const invRef = doc(firestore, "investorProfiles", user!.uid, "investments", target.id);
-          updateDocumentNonBlocking(invRef, {
-            currentMarketPricePerUnit: newPrice,
-            lastPriceUpdate: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
-
-          const profRef = doc(firestore, "investorProfiles", user!.uid);
-          updateDocumentNonBlocking(profRef, {
-            lastYieldAccrualAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
+        // Process if at least 60 seconds have passed
+        if (secondsPassed >= 60 && !isProcessingYield) { 
+          setIsProcessingYield(true);
           
-          setTimeout(() => setIsProcessingYield(false), 2000);
+          // Calculate the exact portion of the daily profit for the elapsed time
+          // 1440 minutes in a day. We calculate based on total seconds passed for precision.
+          const dayFraction = secondsPassed / (24 * 3600);
+          const baseProfitSlice = profile.dailyProfitAmount * dayFraction;
+          
+          // Real Trading Simulation: 
+          // Applies a variance factor. Occasionally results in negative profit (loss)
+          // to mimic market pullbacks, while trending towards the target goal.
+          // Range: -20% to +220% of the minute's expected profit, averaging 100% (1.0 factor)
+          const varianceFactor = -0.2 + (Math.random() * 2.4);
+          const profitToApply = baseProfitSlice * varianceFactor;
+
+          const targets = investments.filter(inv => inv.type === profile.profitAssetType);
+          
+          if (targets.length > 0) {
+            // Distribute profit across target assets (applying to the first found for simplicity)
+            const target = targets[0];
+            const profitPerUnit = profitToApply / target.quantity;
+            const newPrice = target.currentMarketPricePerUnit + profitPerUnit;
+
+            const invRef = doc(firestore, "investorProfiles", user!.uid, "investments", target.id);
+            updateDocumentNonBlocking(invRef, {
+              currentMarketPricePerUnit: newPrice,
+              lastPriceUpdate: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+
+            const profRef = doc(firestore, "investorProfiles", user!.uid);
+            updateDocumentNonBlocking(profRef, {
+              lastYieldAccrualAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+            
+            // Short delay before allowing the next cycle to prevent race conditions
+            setTimeout(() => setIsProcessingYield(false), 2000);
+          } else {
+            setIsProcessingYield(false);
+          }
         }
-      }
+      }, 30000); // Pulse check every 30 seconds
+      
+      return () => clearInterval(interval);
     }
   }, [profile, investments, firestore, user, isProcessingYield]);
 
