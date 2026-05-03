@@ -4,34 +4,45 @@
 
 @layer base {
   :root {
-    --background: 222 47% 4%; /* Near black institutional background */
-    --foreground: 210 40% 98%;
-    --card: 222 47% 7%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 7%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%; /* Sharp institutional blue */
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    /* Obsidian & Neon Cyan Palette */
+    --background: 240 10% 2%; 
+    --foreground: 180 10% 90%;
+    
+    --card: 240 10% 4%;
+    --card-foreground: 180 10% 98%;
+    
+    --popover: 240 10% 4%;
+    --popover-foreground: 180 10% 98%;
+    
+    --primary: 180 100% 50%; /* Neon Cyan */
+    --primary-foreground: 240 10% 2%;
+    
+    --secondary: 260 100% 60%; /* Cyber Purple */
     --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 12.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
+    
+    --muted: 240 10% 10%;
+    --muted-foreground: 180 10% 60%;
+    
+    --accent: 180 100% 50%;
+    --accent-foreground: 240 10% 2%;
+    
+    --destructive: 0 100% 50%; /* Neon Red */
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
-    --radius: 0.3rem; /* Sharper corners for a more serious feel */
-    --sidebar-background: 222 47% 4%;
-    --sidebar-foreground: 215 20.2% 65.1%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 15%;
-    --sidebar-ring: 224.3 76.3% 48%;
+    
+    --border: 180 100% 10%;
+    --input: 180 100% 10%;
+    --ring: 180 100% 50%;
+    
+    --radius: 0.1rem; /* Ultra sharp for sci-fi look */
+    
+    --sidebar-background: 240 10% 1%;
+    --sidebar-foreground: 180 10% 60%;
+    --sidebar-primary: 180 100% 50%;
+    --sidebar-primary-foreground: 240 10% 2%;
+    --sidebar-accent: 180 100% 5%;
+    --sidebar-accent-foreground: 180 100% 50%;
+    --sidebar-border: 180 100% 8%;
+    --sidebar-ring: 180 100% 50%;
   }
 }
 
@@ -42,25 +53,56 @@
   body {
     @apply bg-background text-foreground font-body;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-image: radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.03) 0%, transparent 70%);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline uppercase tracking-[0.2em];
   }
 }
 
-.chart-container {
-  @apply transition-all duration-300 ease-in-out;
+/* Sci-Fi Glow Effects */
+.glow-primary {
+  box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
 }
 
-/* Custom scrollbar for terminal feel */
+.glow-text {
+  text-shadow: 0 0 8px rgba(0, 242, 255, 0.5);
+}
+
+.border-glow {
+  border: 1px solid rgba(0, 242, 255, 0.2);
+  box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.05);
+}
+
+/* Custom scrollbar for sci-fi feel */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: hsl(var(--background));
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted));
-  border-radius: 4px;
+  background: hsl(var(--primary) / 0.2);
+  border-radius: 0px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--accent));
+  background: hsl(var(--primary) / 0.5);
+}
+
+@keyframes scanning {
+  0% { transform: translateY(-100%); opacity: 0; }
+  50% { opacity: 0.5; }
+  100% { transform: translateY(1000%); opacity: 0; }
+}
+
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary)), transparent);
+  animation: scanning 4s linear infinite;
+  pointer-events: none;
 }

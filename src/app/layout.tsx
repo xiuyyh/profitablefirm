@@ -5,8 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'PROFITABLEFIRM - Investor Portfolio Management',
-  description: 'Monitor your investments and performance with ease.',
+  title: 'PROFITABLEFIRM | NEURAL TERMINAL',
+  description: 'Advanced portfolio intelligence and neural market monitoring.',
 };
 
 export default function RootLayout({
@@ -19,9 +19,9 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased">
+      <body className="font-body antialiased selection:bg-primary/30 selection:text-primary">
         <FirebaseClientProvider>
           <SidebarProvider defaultOpen={true}>
             {children}
