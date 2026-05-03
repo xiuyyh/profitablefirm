@@ -43,23 +43,18 @@ export default function LoginPage() {
     }
 
     if (isRegistering) {
-      // Create user
       initiateEmailSignUp(auth, email, password);
-      // We will handle profile creation in a separate effect or just assume the user hook will catch it.
-      // For immediate profile creation on signup, we'll monitor the user state or do it here if we had a return promise.
-      // Since it's non-blocking, we'll use an effect to check if profile exists once user is defined.
     } else {
       initiateEmailSignIn(auth, email, password);
     }
   };
 
-  // Profile creation side-effect for new users
   useEffect(() => {
     if (user && isRegistering && username && db) {
       const profileRef = doc(db, "investorProfiles", user.uid);
       setDocumentNonBlocking(profileRef, {
         id: user.uid,
-        firstName: username, // Using username as first name per backend.json schema
+        firstName: username,
         lastName: "",
         email: user.email,
         createdAt: serverTimestamp(),
@@ -77,8 +72,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4 font-body">
-      <div className="w-full max-w-[400px] space-y-8">
+    <div className="fixed inset-0 flex items-center justify-center bg-background p-4 font-body z-50">
+      <div className="w-full max-w-[400px] space-y-8 animate-in fade-in zoom-in duration-300">
         <div className="flex flex-col items-center space-y-2">
           <div className="rounded border border-primary/20 bg-primary/5 p-3">
             <Shield className="h-8 w-8 text-primary" />

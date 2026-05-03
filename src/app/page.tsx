@@ -16,8 +16,6 @@ import {
   Bell, 
   Search,
   PlusCircle,
-  ArrowUpRight,
-  ArrowDownRight,
   Shield,
   Terminal
 } from "lucide-react";
@@ -27,8 +25,7 @@ import {
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle,
-  CardDescription
+  CardTitle
 } from "@/components/ui/card";
 import {
   Table,
@@ -39,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, query, limit, orderBy } from "firebase/firestore";
+import { collection, query, limit } from "firebase/firestore";
 
 export default function Dashboard() {
   const { user, isUserLoading } = useUser();
@@ -62,8 +59,8 @@ export default function Dashboard() {
 
   const { data: investments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
 
-  const totalValue = investments?.reduce((sum, inv) => sum + (inv.currentPrice * inv.quantity), 0) || 0;
-  const totalCost = investments?.reduce((sum, inv) => sum + (inv.purchasePrice * inv.quantity), 0) || 0;
+  const totalValue = investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
+  const totalCost = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
   const unrealizedPnL = totalValue - totalCost;
   const pnlPercentage = totalCost > 0 ? (unrealizedPnL / totalCost) * 100 : 0;
 
@@ -125,7 +122,7 @@ export default function Dashboard() {
             <MetricCard 
               title="AUM (Total Portfolio)" 
               value={`$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
-              trend={pnlPercentage > 0 ? Number(pnlPercentage.toFixed(1)) : undefined} 
+              trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(1)) : undefined} 
               icon={DollarSign}
               variant="default"
             />
@@ -233,7 +230,7 @@ export default function Dashboard() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold text-sm py-3">
-                          ${(inv.currentPrice * inv.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          ${(inv.currentMarketPricePerUnit * inv.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-right font-mono text-xs py-3">
                           {inv.quantity}
