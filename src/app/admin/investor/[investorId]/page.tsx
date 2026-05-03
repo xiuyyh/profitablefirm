@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, use, useState, useMemo } from "react";
@@ -104,7 +105,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     const interval = setInterval(() => {
       const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
-    }, 500);
+    }, 400);
     return () => clearInterval(interval);
   }, []);
 
@@ -150,6 +151,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [user, isUserLoading, adminProfile, router]);
 
+  // LEDGER ACCOUNTING
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -157,18 +159,22 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }, 0) || 0;
   }, [transactions]);
 
+  const netExternalCapital = useMemo(() => {
+    return transactions?.reduce((sum, tx) => {
+      if (tx.type === 'Deposit') return sum + tx.amount;
+      if (tx.type === 'Withdrawal') return sum - tx.amount;
+      return sum;
+    }, 0) || 0;
+  }, [transactions]);
+
   const baseInvestmentValue = useMemo(() => {
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  const totalCost = useMemo(() => {
-    return investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
-  }, [investments]);
-
   // DETERMINISTIC LIVE EQUITY CALCULATION
   const liveAUM = (baseInvestmentValue + ledgerBalance) * marketNoise;
-  const unrealizedPnL = liveAUM - (totalCost + ledgerBalance);
-  const pnlPercentage = (totalCost + ledgerBalance) > 0 ? (unrealizedPnL / (totalCost + ledgerBalance)) * 100 : 0;
+  const netPnL = liveAUM - netExternalCapital;
+  const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
 
   const handleSaveYieldConfig = () => {
     if (!firestore || !investorId) return;
@@ -297,7 +303,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             />
             <MetricCard 
               title="Yield Accumulation" 
-              value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              value={`${netPnL >= 0 ? '+' : ''}$${netPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={Number(pnlPercentage.toFixed(2))}
               icon={TrendingUp}
               trendLabel="GROWTH TREND"

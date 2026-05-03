@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
@@ -58,7 +59,7 @@ export default function Dashboard() {
       // High frequency, ultra-low amplitude noise (±0.1%)
       const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
-    }, 500);
+    }, 400);
     return () => clearInterval(interval);
   }, []);
 
@@ -102,17 +103,18 @@ export default function Dashboard() {
           
           /**
            * LADDER CLIMBING LOGIC (0.8% UP / 0.2% DOWN)
+           * WEIGHTED MOMENTUM (80% Growth / 20% Pullback)
            */
           let bias = 0;
           if (accrualStreak.current >= 5) {
-            bias = -1.0; 
+            bias = -1.0; // 1% Pullback after streak
             accrualStreak.current = 0;
           } else {
             if (Math.random() > 0.2) {
-              bias = 0.8;
+              bias = 0.8; // Climb
               accrualStreak.current += 1;
             } else {
-              bias = -0.2;
+              bias = -0.2; // Dip
               accrualStreak.current = 0;
             }
           }
@@ -159,7 +161,7 @@ export default function Dashboard() {
     }
   }, [profile, investments, firestore, user, isProcessingYield]);
 
-  // CLIENT-SIDE SORTING (Avoids Firebase Indexing requirements)
+  // CLIENT-SIDE SORTING
   const sortedInvestments = useMemo(() => {
     if (!investments) return [];
     return [...investments].sort((a, b) => {
@@ -169,6 +171,7 @@ export default function Dashboard() {
     });
   }, [investments]);
 
+  // LEDGER ACCOUNTING
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -176,18 +179,22 @@ export default function Dashboard() {
     }, 0) || 0;
   }, [transactions]);
 
+  const netExternalCapital = useMemo(() => {
+    return transactions?.reduce((sum, tx) => {
+      if (tx.type === 'Deposit') return sum + tx.amount;
+      if (tx.type === 'Withdrawal') return sum - tx.amount;
+      return sum;
+    }, 0) || 0;
+  }, [transactions]);
+
   const baseInvestmentValue = useMemo(() => {
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  const totalCost = useMemo(() => {
-    return investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
-  }, [investments]);
-
-  // LIVE ACCOUNT EQUITY
+  // LIVE ACCOUNT EQUITY & PNL
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
-  const unrealizedPnL = totalAccountEquity - (totalCost + ledgerBalance);
-  const pnlPercentage = (totalCost + ledgerBalance) > 0 ? (unrealizedPnL / (totalCost + ledgerBalance)) * 100 : 0;
+  const netPnL = totalAccountEquity - netExternalCapital;
+  const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
 
   const allocation = useMemo(() => {
     if (!investments || baseInvestmentValue === 0) return [];
@@ -268,7 +275,7 @@ export default function Dashboard() {
             />
             <MetricCard 
               title="Net Delta (PnL)" 
-              value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              value={`${netPnL >= 0 ? '+' : ''}$${netPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={Number(pnlPercentage.toFixed(2))} 
               icon={TrendingUp}
               trendLabel="GROWTH"
