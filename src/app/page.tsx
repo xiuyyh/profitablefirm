@@ -282,21 +282,6 @@ export default function Dashboard() {
                   )}
                 </CardContent>
               </Card>
-
-              {profile?.autoProfitEnabled && (
-                <Card className="border border-yellow-500/20 bg-yellow-500/5 text-yellow-500">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                      <Activity className="h-3 w-3" /> Yield Engine: Volatility Active
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-[12px] font-medium leading-relaxed italic opacity-90">
-                      "Real-time market simulations are being applied to your {profile.profitAssetType} holdings. Daily returns are adjusted within a ±20% deviation leg to mirror institutional trading performance."
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           </div>
 
