@@ -37,7 +37,9 @@ service cloud.firestore {
 
       match /transactions/{transactionId} {
         allow get, list: if isOwner(investorId) || isAdmin();
-        allow create, update, delete: if isAdmin();
+        // Allow owner to create transactions for the simulated yield engine
+        allow create: if isOwner(investorId) || isAdmin();
+        allow update, delete: if isAdmin();
       }
     }
   }

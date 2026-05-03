@@ -56,11 +56,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // High frequency, low amplitude micro-noise (±0.1%) to keep numbers "alive"
-      // without disrupting the underlying climb trend
+      // High frequency, ultra-low amplitude noise (±0.1%) to keep numbers "alive"
+      // while preserving the dominant ladder-climb trend
       const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
-    }, 400);
+    }, 500);
     return () => clearInterval(interval);
   }, []);
 
@@ -85,7 +85,7 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // INSTITUTIONAL LADDER CLIMBING ENGINE
+  // INSTITUTIONAL LADDER CLIMBING ENGINE (REFINE TO 0.8% UP / 0.2% DOWN / 5-STEP / 1% PULLBACK)
   useEffect(() => {
     if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user) {
       const interval = setInterval(() => {
@@ -96,7 +96,7 @@ export default function Dashboard() {
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
 
-        // ACCRUAL LOGIC: Trigger every 60 seconds for silent refresh
+        // Trigger every 60 seconds for silent refresh
         if (secondsPassed >= 60 && !isProcessingYield) { 
           setIsProcessingYield(true);
           
@@ -104,30 +104,27 @@ export default function Dashboard() {
           const baseProfitSlice = (profile.dailyProfitAmount || 0) * dayFraction;
           
           /**
-           * LADDER CLIMBING LOGIC (Deterministic Momentum):
-           * - Step Up: +0.8% bias (Aggressive climb)
-           * - Step Down: -0.2% bias (Minor retrace)
-           * - Streak Protocol: After 5 steps up, trigger a 1% "Pullback"
+           * LADDER CLIMBING LOGIC:
+           * - Up 0.8% (Growth Bias)
+           * - Down 0.2% (Retracement Bias)
+           * - 5x Up Streak -> 1% Pullback
            */
-          let multiplier = 0;
-          const roll = Math.random();
-
+          let bias = 0;
           if (accrualStreak.current >= 5) {
-            // Pullback cycle (1% equivalent pullback on the slice)
-            multiplier = -1.2; 
+            bias = -1.0; // 1% Pullback relative to slice target
             accrualStreak.current = 0;
           } else {
-            // 85% chance to climb, 15% chance to dip slightly
-            if (roll > 0.15) {
-              multiplier = 1.6; // 0.8% upward velocity relative to slice
+            // 80% Growth chance (+0.8 bias)
+            if (Math.random() > 0.2) {
+              bias = 0.8;
               accrualStreak.current += 1;
             } else {
-              multiplier = -0.4; // 0.2% downward velocity relative to slice
+              bias = -0.2;
               accrualStreak.current = 0;
             }
           }
             
-          const profitToApply = baseProfitSlice * multiplier;
+          const profitToApply = baseProfitSlice * (1 + bias);
 
           const targets = investments?.filter(inv => inv.type === profile.profitAssetType) || [];
           
@@ -163,7 +160,7 @@ export default function Dashboard() {
           
           setTimeout(() => setIsProcessingYield(false), 2000);
         }
-      }, 10000); // Check every 10s
+      }, 10000); // Check loop every 10s
       
       return () => clearInterval(interval);
     }
@@ -184,7 +181,7 @@ export default function Dashboard() {
     return investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // LIVE ACCOUNT EQUITY (High-frequency Ticker)
+  // LIVE ACCOUNT EQUITY (High-frequency Ticker with Ladder Momentum)
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
   const unrealizedPnL = totalAccountEquity - (totalCost + ledgerBalance);
   const pnlPercentage = (totalCost + ledgerBalance) > 0 ? (unrealizedPnL / (totalCost + ledgerBalance)) * 100 : 0;
