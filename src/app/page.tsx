@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -18,7 +18,8 @@ import {
   PlusCircle,
   Shield,
   Terminal,
-  Zap
+  Zap,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,14 +61,21 @@ export default function Dashboard() {
 
   const { data: profile } = useDoc(profileRef);
 
+  // Fetch Investments
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "investorProfiles", user.uid, "investments")
-    );
+    return collection(firestore, "investorProfiles", user.uid, "investments");
   }, [firestore, user?.uid]);
 
   const { data: investments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
+
+  // Fetch Transactions for Ledger Balance
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, "investorProfiles", user.uid, "transactions");
+  }, [firestore, user?.uid]);
+
+  const { data: transactions } = useCollection(transactionsQuery);
 
   // Yield Accrual Logic
   useEffect(() => {
@@ -80,21 +88,18 @@ export default function Dashboard() {
       const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
       const daysPassed = secondsPassed / (24 * 3600);
 
-      // We only process if at least 10 minutes (600s) have passed to avoid rapid minor updates
-      if (daysPassed > 0.0069) { // ~10 minutes
+      // Process if at least 10 minutes (600s) have passed
+      if (daysPassed > 0.0069) { 
         setIsProcessingYield(true);
         
         const totalProfitToAccrue = profile.dailyProfitAmount * daysPassed;
-        
-        // Find target investments matching the asset type
         const targets = investments.filter(inv => inv.type === profile.profitAssetType);
         
         if (targets.length > 0) {
-          const target = targets[0]; // Apply to the first found investment of that type
+          const target = targets[0];
           const profitPerUnit = totalProfitToAccrue / target.quantity;
           const newPrice = target.currentMarketPricePerUnit + profitPerUnit;
 
-          // Update investment
           const invRef = doc(firestore, "investorProfiles", user!.uid, "investments", target.id);
           updateDocumentNonBlocking(invRef, {
             currentMarketPricePerUnit: newPrice,
@@ -102,7 +107,6 @@ export default function Dashboard() {
             updatedAt: serverTimestamp()
           });
 
-          // Update profile accrual timestamp
           const profRef = doc(firestore, "investorProfiles", user!.uid);
           updateDocumentNonBlocking(profRef, {
             lastYieldAccrualAt: serverTimestamp(),
@@ -113,10 +117,34 @@ export default function Dashboard() {
     }
   }, [profile, investments, firestore, user, isProcessingYield]);
 
-  const totalValue = investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
+  // Calculations
+  const investmentValue = useMemo(() => {
+    return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
+  }, [investments]);
+
+  const ledgerBalance = useMemo(() => {
+    return transactions?.reduce((sum, tx) => {
+      if (tx.type === 'Withdrawal') return sum - tx.amount;
+      return sum + tx.amount;
+    }, 0) || 0;
+  }, [transactions]);
+
+  const totalAccountEquity = investmentValue + ledgerBalance;
+  
   const totalCost = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
-  const unrealizedPnL = totalValue - totalCost;
+  const unrealizedPnL = investmentValue - totalCost;
   const pnlPercentage = totalCost > 0 ? (unrealizedPnL / totalCost) * 100 : 0;
+
+  // Real Asset Allocation
+  const allocation = useMemo(() => {
+    if (!investments || investmentValue === 0) return [];
+    const types = ["Crypto", "Stock", "Forex", "Bond", "ETF"];
+    return types.map(type => {
+      const value = investments.filter(i => i.type === type).reduce((s, i) => s + (i.currentMarketPricePerUnit * i.quantity), 0);
+      const percentage = (value / investmentValue) * 100;
+      return { type, value, percentage };
+    }).filter(a => a.value > 0);
+  }, [investments, investmentValue]);
 
   if (isUserLoading || !user) {
     return (
@@ -138,7 +166,7 @@ export default function Dashboard() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search holdings..."
+                placeholder="Search portfolio..."
                 className="h-8 pl-8 bg-background border-border text-xs focus-visible:ring-primary"
               />
             </div>
@@ -163,72 +191,72 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Investment Portfolio</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Investor Terminal</span>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight">Executive Dashboard</h1>
+              <h1 className="text-2xl font-bold tracking-tight">Financial Overview</h1>
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={() => router.push('/investments')} className="h-8 px-4 text-xs font-bold bg-primary text-primary-foreground uppercase tracking-wider">
-                <PlusCircle className="h-3.5 w-3.5 mr-2" /> Add Asset
+                <PlusCircle className="h-3.5 w-3.5 mr-2" /> Manage Assets
               </Button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard 
-              title="Total Portfolio Value" 
-              value={`$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+              title="Total Account Equity" 
+              value={`$${totalAccountEquity.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
               trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(1)) : undefined} 
               icon={DollarSign}
-              variant="default"
+              variant="accent"
             />
             <MetricCard 
-              title="Net Unrealized P&L" 
+              title="Available Ledger" 
+              value={`$${ledgerBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+              icon={CreditCard}
+              trendLabel="CASH BALANCE"
+            />
+            <MetricCard 
+              title="Net Portfolio P&L" 
               value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
               trend={pnlPercentage} 
               icon={TrendingUp}
             />
             <MetricCard 
-              title="Target Daily Yield" 
-              value={profile?.autoProfitEnabled ? `+$${profile.dailyProfitAmount.toFixed(2)}` : "$0.00"} 
+              title="AUM Growth Rate" 
+              value={profile?.autoProfitEnabled ? `+$${profile.dailyProfitAmount.toFixed(2)}/day` : "$0.00"} 
               icon={Zap}
-              variant={profile?.autoProfitEnabled ? "accent" : "default"}
-            />
-            <MetricCard 
-              title="Total Asset Count" 
-              value={investments?.length.toString() || "0"} 
-              icon={Briefcase}
             />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <PerformanceChart />
+              <PerformanceChart currentTotal={totalAccountEquity} />
             </div>
             <div className="space-y-6">
               <Card className="border border-border bg-card shadow-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Asset Allocation</CardTitle>
+                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Asset Distribution</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {["Crypto", "Stock", "Forex", "Bond"].map((type) => {
-                    const typeValue = investments?.filter(i => i.type === type).reduce((s, i) => s + (i.currentMarketPricePerUnit * i.quantity), 0) || 0;
-                    const perc = totalValue > 0 ? (typeValue / totalValue) * 100 : 0;
-                    return (
-                      <div key={type} className="space-y-1.5">
-                        <div className="flex justify-between text-[11px] uppercase tracking-tight">
-                          <span className="font-semibold">{type}</span>
-                          <span className="text-muted-foreground">{perc.toFixed(1)}%</span>
-                        </div>
-                        <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary" 
-                            style={{ width: `${perc}%` }}
-                          />
-                        </div>
+                  {allocation.length > 0 ? allocation.map((item) => (
+                    <div key={item.type} className="space-y-1.5">
+                      <div className="flex justify-between text-[11px] uppercase tracking-tight">
+                        <span className="font-semibold">{item.type}</span>
+                        <span className="text-muted-foreground">{item.percentage.toFixed(1)}%</span>
                       </div>
-                    );
-                  })}
+                      <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary" 
+                          style={{ width: `${item.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="py-10 text-center opacity-30 text-[10px] font-bold uppercase tracking-widest">
+                      Zero Distribution Detected
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -252,9 +280,9 @@ export default function Dashboard() {
           <Card className="border border-border bg-card shadow-none">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div>
-                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Portfolio Breakdown (Recent)</CardTitle>
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Real-Time Holdings (Recent)</CardTitle>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => router.push('/investments')} className="h-7 text-[10px] uppercase font-bold text-primary">View Full Portfolio</Button>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/investments')} className="h-7 text-[10px] uppercase font-bold text-primary">Full Portfolio</Button>
             </CardHeader>
             <CardContent>
               {isInvestmentsLoading ? (
