@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -10,11 +9,8 @@ import {
   Globe, 
   Terminal, 
   ShieldAlert,
-  ArrowUpRight,
-  ArrowDownRight,
   Filter,
   Download,
-  CreditCard,
   User as UserIcon
 } from "lucide-react";
 import { 
@@ -35,7 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { collectionGroup, query, orderBy, doc } from "firebase/firestore";
+import { collectionGroup, doc } from "firebase/firestore";
 
 export default function GlobalLedgerPage() {
   const { user, isUserLoading } = useUser();
@@ -51,10 +47,21 @@ export default function GlobalLedgerPage() {
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, "transactions"), orderBy("createdAt", "desc"));
+    // Removed orderBy to avoid Indexing requirement for collectionGroup
+    return collectionGroup(firestore, "transactions");
   }, [firestore]);
 
-  const { data: transactions, isLoading } = useCollection(transactionsQuery);
+  const { data: rawTransactions, isLoading } = useCollection(transactionsQuery);
+
+  // Client-side sorting
+  const transactions = useMemo(() => {
+    if (!rawTransactions) return [];
+    return [...rawTransactions].sort((a, b) => {
+      const dateA = a.createdAt?.seconds || 0;
+      const dateB = b.createdAt?.seconds || 0;
+      return dateB - dateA;
+    });
+  }, [rawTransactions]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {

@@ -21,7 +21,8 @@ export function MetricCard({
   icon: Icon,
   variant = "default",
 }: MetricCardProps) {
-  const isPositive = trend && trend > 0;
+  // Fix: Ensure 0% or positive trends are treated as green
+  const isPositive = trend !== undefined && trend >= 0;
 
   return (
     <Card className={cn(

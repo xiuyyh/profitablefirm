@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -9,13 +8,10 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { 
   Users, 
   ShieldAlert, 
-  TrendingUp, 
   DollarSign, 
-  MoreHorizontal,
   ChevronRight,
   Terminal,
-  Activity,
-  ArrowUpRight
+  Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -34,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc, query, orderBy } from "firebase/firestore";
+import { collection, doc } from "firebase/firestore";
 import { MetricCard } from "@/components/dashboard/metric-card";
 
 export default function AdminControlPanel() {
@@ -51,10 +47,20 @@ export default function AdminControlPanel() {
 
   const investorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, "investorProfiles"), orderBy("createdAt", "desc"));
+    return collection(firestore, "investorProfiles");
   }, [firestore]);
 
-  const { data: investors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
+  const { data: rawInvestors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
+
+  // Client-side sorting
+  const investors = useMemo(() => {
+    if (!rawInvestors) return [];
+    return [...rawInvestors].sort((a, b) => {
+      const dateA = a.createdAt?.seconds || 0;
+      const dateB = b.createdAt?.seconds || 0;
+      return dateB - dateA;
+    });
+  }, [rawInvestors]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {

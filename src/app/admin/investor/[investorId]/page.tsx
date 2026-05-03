@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, use, useState, useMemo } from "react";
@@ -15,23 +14,18 @@ import {
   ShieldAlert,
   Calendar,
   Mail,
-  User as UserIcon,
   Trash2,
   Zap,
   Save,
-  CheckCircle2,
   PlusCircle,
-  History,
-  CreditCard,
-  Activity
+  History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle,
-  CardDescription
+  CardTitle
 } from "@/components/ui/card";
 import {
   Table,
@@ -52,7 +46,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { collection, doc, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { collection, doc, serverTimestamp } from "firebase/firestore";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
@@ -105,29 +99,47 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [investorProfile, isInitialized]);
 
-  // SYNCED HIGH-FREQUENCY TICKER (Matches Dashboard)
+  // SYNCED HIGH-FREQUENCY TICKER
   useEffect(() => {
     const interval = setInterval(() => {
-      // High frequency micro-fluctuations (±0.1%)
       const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
-    }, 400);
+    }, 500);
     return () => clearInterval(interval);
   }, []);
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !investorId) return null;
-    return query(collection(firestore, "investorProfiles", investorId, "investments"), orderBy("createdAt", "desc"));
+    return collection(firestore, "investorProfiles", investorId, "investments");
   }, [firestore, investorId]);
 
-  const { data: investments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
+  const { data: rawInvestments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !investorId) return null;
-    return query(collection(firestore, "investorProfiles", investorId, "transactions"), orderBy("createdAt", "desc"));
+    return collection(firestore, "investorProfiles", investorId, "transactions");
   }, [firestore, investorId]);
 
-  const { data: transactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
+  const { data: rawTransactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
+
+  // CLIENT-SIDE SORTING
+  const investments = useMemo(() => {
+    if (!rawInvestments) return [];
+    return [...rawInvestments].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [rawInvestments]);
+
+  const transactions = useMemo(() => {
+    if (!rawTransactions) return [];
+    return [...rawTransactions].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [rawTransactions]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -138,7 +150,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [user, isUserLoading, adminProfile, router]);
 
-  // LIVE FINANCIAL AUDIT LOGIC
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -281,7 +292,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               value={`$${liveAUM.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={DollarSign}
               variant="accent"
-              trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(2)) : undefined}
+              trend={Number(pnlPercentage.toFixed(2))}
               trendLabel="LIVE AUDIT"
             />
             <MetricCard 
@@ -313,9 +324,9 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             <TabsContent value="yield" className="space-y-6">
               <Card className="w-full border-border bg-card shadow-none">
                 <CardHeader className="bg-muted/10 border-b">
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                  <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary" /> Algorithmic Yield Protocol
-                  </CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                   <div className="flex items-center justify-between">
@@ -373,9 +384,9 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-1 border-border bg-card shadow-none">
                   <CardHeader className="bg-muted/10 border-b">
-                    <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                       <PlusCircle className="h-4 w-4 text-primary" /> Manual Entry
-                    </CardTitle>
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-4">
                     <div className="space-y-2">
@@ -424,9 +435,9 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
                 <Card className="lg:col-span-2 border-border bg-card shadow-none">
                   <CardHeader className="bg-muted/10 border-b">
-                    <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                       <History className="h-4 w-4" /> Activity Logs
-                    </CardTitle>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-0">
                     <Table>
@@ -472,7 +483,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             <TabsContent value="assets" className="space-y-6">
               <Card className="border-border bg-card shadow-none">
                 <CardHeader className="border-b bg-muted/10">
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest">Holding Portfolio Audit</CardTitle>
+                  <div className="text-sm font-bold uppercase tracking-widest">Holding Portfolio Audit</div>
                 </CardHeader>
                 <CardContent className="p-0">
                   {isInvestmentsLoading ? (
