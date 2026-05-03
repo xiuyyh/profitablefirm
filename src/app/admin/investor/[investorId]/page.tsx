@@ -204,7 +204,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
   return (
     <div className="flex min-h-screen bg-background text-foreground font-body">
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="w-full">
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
@@ -279,7 +279,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             </TabsList>
 
             <TabsContent value="yield" className="space-y-6">
-              <Card className="max-w-xl border-border bg-card shadow-none">
+              <Card className="w-full border-border bg-card shadow-none">
                 <CardHeader className="bg-muted/10 border-b">
                   <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
                     <Zap className="h-4 w-4 text-yellow-500" /> Automated Yield Engine

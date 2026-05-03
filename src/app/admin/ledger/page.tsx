@@ -78,7 +78,7 @@ export default function GlobalLedgerPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="w-full">
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
