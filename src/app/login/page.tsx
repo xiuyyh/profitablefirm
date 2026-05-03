@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Shield, Lock, Mail, Terminal, User as UserIcon } from "lucide-react";
+import { Shield, Lock, Mail, Terminal, User as UserIcon, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { doc, serverTimestamp } from "firebase/firestore";
 
@@ -19,7 +19,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
-  const { user, isUserLoading } = useUser();
+  const [isPending, setIsPending] = useState(false);
+  const { user, isUserLoading, userError } = useUser();
   const auth = useAuth();
   const db = useFirestore();
   const router = useRouter();
@@ -27,9 +28,27 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !isUserLoading) {
+      if (isPending) {
+        toast({
+          title: "Authentication Successful",
+          description: isRegistering ? "Your account has been created." : "Welcome back to the dashboard.",
+        });
+        setIsPending(false);
+      }
       router.push("/");
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, isPending, isRegistering, toast]);
+
+  useEffect(() => {
+    if (userError && isPending) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Failed",
+        description: userError.message || "Could not verify credentials.",
+      });
+      setIsPending(false);
+    }
+  }, [userError, isPending, toast]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +61,7 @@ export default function LoginPage() {
       return;
     }
 
+    setIsPending(true);
     if (isRegistering) {
       initiateEmailSignUp(auth, email, password);
     } else {
@@ -63,7 +83,7 @@ export default function LoginPage() {
     }
   }, [user, isRegistering, username, db]);
 
-  if (isUserLoading) {
+  if (isUserLoading && !isPending) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Terminal className="h-8 w-8 animate-pulse text-primary" />
@@ -106,6 +126,7 @@ export default function LoginPage() {
                       onChange={(e) => setUsername(e.target.value)}
                       className="pl-10 bg-background border-border text-sm focus-visible:ring-primary"
                       required
+                      disabled={isPending}
                     />
                   </div>
                 </div>
@@ -122,6 +143,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 bg-background border-border text-sm focus-visible:ring-primary"
                     required
+                    disabled={isPending}
                   />
                 </div>
               </div>
@@ -136,18 +158,31 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 bg-background border-border text-sm focus-visible:ring-primary"
                     required
+                    disabled={isPending}
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full h-11 bg-primary text-primary-foreground font-bold uppercase tracking-widest hover:bg-primary/90">
-                {isRegistering ? "Sign Up" : "Login"}
+              <Button 
+                type="submit" 
+                disabled={isPending}
+                className="w-full h-11 bg-primary text-primary-foreground font-bold uppercase tracking-widest hover:bg-primary/90"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  isRegistering ? "Sign Up" : "Login"
+                )}
               </Button>
             </form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <button
               onClick={() => setIsRegistering(!isRegistering)}
-              className="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline"
+              disabled={isPending}
+              className="text-[10px] font-bold uppercase tracking-widest text-primary hover:underline disabled:opacity-50"
             >
               {isRegistering ? "Already have an account? Login" : "Don't have an account? Sign Up"}
             </button>
