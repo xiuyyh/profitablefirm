@@ -105,10 +105,10 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [investorProfile, isInitialized]);
 
-  // LIVE TICKER LOGIC
+  // LIVE TICKER LOGIC (Matches Dashboard precision)
   useEffect(() => {
     const interval = setInterval(() => {
-      const noise = 0.995 + (Math.random() * 0.01);
+      const noise = 0.998 + (Math.random() * 0.004);
       setMarketNoise(noise);
     }, 500);
     return () => clearInterval(interval);

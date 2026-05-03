@@ -56,8 +56,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // High-frequency micro-fluctuations for balance updates
-      const noise = 0.995 + (Math.random() * 0.01);
+      // High-frequency micro-fluctuations (±0.2% to allow profit trend to be visible)
+      const noise = 0.998 + (Math.random() * 0.004);
       setMarketNoise(noise);
     }, 500);
     return () => clearInterval(interval);
@@ -101,8 +101,12 @@ export default function Dashboard() {
           const dayFraction = secondsPassed / (24 * 3600);
           const baseProfitSlice = profile.dailyProfitAmount * dayFraction;
           
-          // Mimick real trading: variance between 80% and 120%
-          const varianceFactor = 0.8 + (Math.random() * 0.4);
+          // LADDER CLIMBING LOGIC: 70% growth / 30% pullback
+          const isGrowthCycle = Math.random() > 0.3;
+          const varianceFactor = isGrowthCycle 
+            ? (0.9 + Math.random() * 0.6)  // 90% to 150% of expected slice
+            : (Math.random() * 0.4 - 0.2); // -20% to 20% of expected slice (simulates pullback/stagnation)
+            
           const profitToApply = baseProfitSlice * varianceFactor;
 
           const targets = investments.filter(inv => inv.type === profile.profitAssetType);
