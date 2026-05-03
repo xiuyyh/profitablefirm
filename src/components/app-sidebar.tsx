@@ -9,7 +9,8 @@ import {
   Settings, 
   LogOut,
   User,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,8 +24,9 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
+import { doc } from "firebase/firestore";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
@@ -38,6 +40,15 @@ export function AppSidebar() {
   const router = useRouter();
   const { user } = useUser();
   const auth = useAuth();
+  const db = useFirestore();
+
+  const profileRef = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return doc(db, "investorProfiles", user.uid);
+  }, [db, user?.uid]);
+
+  const { data: profile } = useDoc(profileRef);
+  const isAdmin = profile?.role === "admin";
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -75,6 +86,37 @@ export function AppSidebar() {
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
+
+        {isAdmin && (
+          <>
+            <SidebarSeparator className="my-6 opacity-10" />
+            <div className="px-2 mb-2">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-primary/50 group-data-[collapsible=icon]:hidden">
+                Administration
+              </span>
+            </div>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/admin"}
+                  tooltip="Control Panel"
+                  className={`transition-none h-10 ${
+                    pathname === "/admin" 
+                      ? "bg-destructive/10 text-destructive border-r-2 border-destructive rounded-none" 
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  }`}
+                >
+                  <Link href="/admin">
+                    <ShieldAlert className="h-4 w-4" />
+                    <span className="font-semibold text-xs uppercase tracking-wider">Control Panel</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </>
+        )}
+
         <SidebarSeparator className="my-6 opacity-10" />
         <SidebarMenu>
           <SidebarMenuItem>

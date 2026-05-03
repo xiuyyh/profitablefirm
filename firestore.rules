@@ -1,106 +1,45 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * PROFITABLEFIRM Security Rules Documentation
-     *
-     * Core Philosophy:
-     * This ruleset enforces a strict user-ownership model. Every piece of data in the application is 
-     * logically and physically nested under an investor's profile, identified by their Firebase 
-     * Authentication UID. 
-     *
-     * Data Structure:
-     * All data follows a hierarchical structure: /investorProfiles/{investorId}/...
-     * - Investments are sub-resources of a profile.
-     * - Daily metrics (both for specific investments and the overall portfolio) are nested further 
-     *   under their respective parents.
-     *
-     * Key Security Decisions:
-     * - Authorization Independence: To optimize performance and reduce costs, we avoid get() calls. 
-     *   Instead, we rely on the document path and denormalized 'investorId' fields to verify ownership.
-     * - Immutability: Critical relational fields like 'investorId' are enforced as immutable during 
-     *   updates to prevent data hijacking.
-     * - Default Privacy: No data is publicly accessible. All reads and writes require a valid 
-     *   Firebase Authentication session matching the path ownership.
-     *
-     * Denormalization for Authorization:
-     * We strictly require the 'investorId' field to be present on all documents. This allows rules 
-     * to perform an O(1) check comparing the field value to the authenticated user's UID.
-     */
-
     // --- HELPER FUNCTIONS ---
 
-    /** @description Checks if the user is authenticated. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the user's UID matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks for ownership and ensures the document exists for state-changing operations. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+    /**
+     * @description Checks if the authenticated user has administrative privileges.
+     * We allow access if the user's document in investorProfiles has role == 'admin'.
+     */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/investorProfiles/$(request.auth.uid)).data.role == 'admin';
     }
 
     // --- COLLECTION RULES ---
 
-    /**
-     * @description Rules for Investor Profiles. Users can only manage their own profile.
-     * @path /investorProfiles/{investorId}
-     * @allow (create) auth.uid: 'abc', data: { id: 'abc' }
-     * @deny (create) auth.uid: 'abc', data: { id: 'xyz' }
-     * @principle Enforces path-based ownership and validates relational integrity on creation.
-     */
     match /investorProfiles/{investorId} {
-      allow get, list: if isOwner(investorId);
-      allow create: if isOwner(investorId) && request.resource.data.id == investorId;
-      allow update: if isExistingOwner(investorId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(investorId);
+      allow get: if isOwner(investorId) || isAdmin();
+      allow list: if isAdmin() || isOwner(investorId);
+      allow create: if isOwner(investorId);
+      allow update: if isOwner(investorId) || isAdmin();
+      allow delete: if isAdmin();
 
-      /**
-       * @description Rules for individual investments owned by an investor.
-       * @path /investorProfiles/{investorId}/investments/{investmentId}
-       * @allow (get) auth.uid: 'abc', path: .../investorProfiles/abc/investments/inv123
-       * @deny (update) auth.uid: 'abc', resource.data.investorId: 'abc', request.resource.data.investorId: 'xyz'
-       * @principle Prevents cross-user data access and ensures the 'investorId' field remains immutable.
-       */
       match /investments/{investmentId} {
-        allow get, list: if isOwner(investorId);
-        allow create: if isOwner(investorId) && request.resource.data.investorId == investorId;
-        allow update: if isExistingOwner(investorId) && request.resource.data.investorId == resource.data.investorId;
-        allow delete: if isExistingOwner(investorId);
-
-        /**
-         * @description Rules for daily performance metrics of a specific investment.
-         * @path /investorProfiles/{investorId}/investments/{investmentId}/investmentDailyMetrics/{metricId}
-         * @allow (create) auth.uid: 'abc', data: { investorId: 'abc' }
-         * @deny (list) auth.uid: 'different_user'
-         * @principle Deep ownership verification using path wildcards and denormalized fields.
-         */
-        match /investmentDailyMetrics/{metricId} {
-          allow get, list: if isOwner(investorId);
-          allow create: if isOwner(investorId) && request.resource.data.investorId == investorId;
-          allow update: if isExistingOwner(investorId) && request.resource.data.investorId == resource.data.investorId;
-          allow delete: if isExistingOwner(investorId);
-        }
+        allow get, list: if isOwner(investorId) || isAdmin();
+        allow create: if isOwner(investorId);
+        allow update: if isOwner(investorId) || isAdmin();
+        allow delete: if isOwner(investorId) || isAdmin();
       }
 
-      /**
-       * @description Rules for daily metrics of the entire investor portfolio.
-       * @path /investorProfiles/{investorId}/portfolioDailyMetrics/{metricId}
-       * @allow (update) auth.uid: 'abc', current.investorId: 'abc', incoming.investorId: 'abc'
-       * @deny (create) auth.uid: 'abc', data: { investorId: 'wrong_id' }
-       * @principle Ensures portfolio history is protected by owner-only access.
-       */
       match /portfolioDailyMetrics/{metricId} {
-        allow get, list: if isOwner(investorId);
-        allow create: if isOwner(investorId) && request.resource.data.investorId == investorId;
-        allow update: if isExistingOwner(investorId) && request.resource.data.investorId == resource.data.investorId;
-        allow delete: if isExistingOwner(investorId);
+        allow get, list: if isOwner(investorId) || isAdmin();
+        allow create, update, delete: if isOwner(investorId) || isAdmin();
       }
     }
   }
