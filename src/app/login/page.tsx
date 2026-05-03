@@ -1,22 +1,27 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useUser } from "@/firebase";
-import { initiateEmailSignIn, initiateEmailSignUp, initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
+import { useAuth, useUser, useFirestore } from "@/firebase";
+import { initiateEmailSignIn, initiateEmailSignUp } from "@/firebase/non-blocking-login";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Shield, Lock, Mail, Terminal } from "lucide-react";
+import { Shield, Lock, Mail, Terminal, User as UserIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { doc, serverTimestamp } from "firebase/firestore";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -28,25 +33,40 @@ export default function LoginPage() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!email || !password || (isRegistering && !username)) {
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: "Please provide valid credentials.",
+        description: "Please provide all required credentials.",
       });
       return;
     }
 
     if (isRegistering) {
+      // Create user
       initiateEmailSignUp(auth, email, password);
+      // We will handle profile creation in a separate effect or just assume the user hook will catch it.
+      // For immediate profile creation on signup, we'll monitor the user state or do it here if we had a return promise.
+      // Since it's non-blocking, we'll use an effect to check if profile exists once user is defined.
     } else {
       initiateEmailSignIn(auth, email, password);
     }
   };
 
-  const handleAnonymous = () => {
-    initiateAnonymousSignIn(auth);
-  };
+  // Profile creation side-effect for new users
+  useEffect(() => {
+    if (user && isRegistering && username && db) {
+      const profileRef = doc(db, "investorProfiles", user.uid);
+      setDocumentNonBlocking(profileRef, {
+        id: user.uid,
+        firstName: username, // Using username as first name per backend.json schema
+        lastName: "",
+        email: user.email,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+  }, [user, isRegistering, username, db]);
 
   if (isUserLoading) {
     return (
@@ -64,20 +84,37 @@ export default function LoginPage() {
             <Shield className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-widest text-foreground uppercase">PROFITABLEFIRM</h1>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Secure Access Terminal</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Investor Terminal</p>
         </div>
 
         <Card className="border-border bg-card shadow-2xl">
-          <CardHeader className="space-y-1">
+          <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-xl font-bold tracking-tight">
-              {isRegistering ? "Initialize Account" : "Identity Verification"}
+              {isRegistering ? "Initialize Investor Profile" : "Identity Verification"}
             </CardTitle>
             <CardDescription className="text-xs uppercase tracking-wider">
-              {isRegistering ? "Create new investor credentials" : "Enter authorized credentials to proceed"}
+              {isRegistering ? "Register your institutional account" : "Enter authorized credentials to proceed"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleAuth} className="space-y-4">
+              {isRegistering && (
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Username / Identity</Label>
+                  <div className="relative">
+                    <UserIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="username"
+                      type="text"
+                      placeholder="investor_01"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="pl-10 bg-background border-border text-sm focus-visible:ring-primary"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Resource Identifier (Email)</Label>
                 <div className="relative">
@@ -108,26 +145,9 @@ export default function LoginPage() {
                 </div>
               </div>
               <Button type="submit" className="w-full h-11 bg-primary text-primary-foreground font-bold uppercase tracking-widest hover:bg-primary/90">
-                {isRegistering ? "Create Account" : "Authorize Session"}
+                {isRegistering ? "Create Investor Account" : "Authorize Session"}
               </Button>
             </form>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
-                <span className="bg-card px-2 text-muted-foreground">Or bypass verification</span>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              onClick={handleAnonymous}
-              className="w-full h-11 border-border font-bold uppercase tracking-widest hover:bg-muted/50"
-            >
-              Anonymous Observer Access
-            </Button>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <button

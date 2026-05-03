@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { 
@@ -10,7 +11,8 @@ import {
   MoreHorizontal, 
   Download,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Terminal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,125 +40,267 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-
-const allInvestments = [
-  { id: "1", name: "Apple Inc.", ticker: "AAPL", type: "Stock", qty: 45, avgPrice: "$145.20", currentPrice: "$182.40", value: "$8,208.00", return: "+25.6%", status: "positive" },
-  { id: "2", name: "Microsoft Corp.", ticker: "MSFT", type: "Stock", qty: 20, avgPrice: "$280.10", currentPrice: "$415.60", value: "$8,312.00", return: "+48.4%", status: "positive" },
-  { id: "3", name: "Vanguard S&P 500 ETF", ticker: "VOO", type: "ETF", qty: 60, avgPrice: "$390.45", currentPrice: "$472.10", value: "$28,326.00", return: "+20.9%", status: "positive" },
-  { id: "4", name: "Bitcoin", ticker: "BTC", type: "Crypto", qty: 0.15, avgPrice: "$42,000.00", currentPrice: "$64,200.00", value: "$9,630.00", return: "+52.8%", status: "positive" },
-  { id: "5", name: "Tesla Inc.", ticker: "TSLA", type: "Stock", qty: 15, avgPrice: "$210.00", currentPrice: "$185.30", value: "$2,779.50", return: "-11.7%", status: "negative" },
-  { id: "6", name: "NVIDIA Corp.", ticker: "NVDA", type: "Stock", qty: 30, avgPrice: "$120.00", currentPrice: "$850.00", value: "$25,500.00", return: "+608.3%", status: "positive" },
-  { id: "7", name: "US Treasury Bond 10Y", ticker: "BOND", type: "Bond", qty: 100, avgPrice: "$98.50", currentPrice: "$95.20", value: "$9,520.00", return: "-3.3%", status: "negative" },
-];
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { collection, doc, serverTimestamp } from "firebase/firestore";
 
 export default function InvestmentsPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newAsset, setNewAsset] = useState({
+    name: "",
+    symbol: "",
+    type: "Stock",
+    quantity: "",
+    price: "",
+  });
+
+  const investmentsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, "investorProfiles", user.uid, "investments");
+  }, [firestore, user?.uid]);
+
+  const { data: investments, isLoading } = useCollection(investmentsQuery);
+
+  const handleAddAsset = () => {
+    if (!firestore || !user || !newAsset.name || !newAsset.symbol) return;
+
+    const colRef = collection(firestore, "investorProfiles", user.uid, "investments");
+    addDocumentNonBlocking(colRef, {
+      investorId: user.uid,
+      name: newAsset.name,
+      symbol: newAsset.symbol.toUpperCase(),
+      type: newAsset.type,
+      quantity: Number(newAsset.quantity),
+      purchasePricePerUnit: Number(newAsset.price),
+      currentMarketPricePerUnit: Number(newAsset.price), // Initializing with purchase price
+      currency: "USD",
+      purchaseDate: serverTimestamp(),
+      lastPriceUpdate: serverTimestamp(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    setIsAddOpen(false);
+    setNewAsset({ name: "", symbol: "", type: "Stock", quantity: "", price: "" });
+  };
+
+  const handleDelete = (id: string) => {
+    if (!firestore || !user) return;
+    const docRef = doc(firestore, "investorProfiles", user.uid, "investments", id);
+    deleteDocumentNonBlocking(docRef);
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-white sticky top-0 z-10">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b px-6 bg-card sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
-            <h1 className="text-xl font-bold">Investments</h1>
+            <h1 className="text-xl font-bold">Positions Terminal</h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" /> Export
+            <Button variant="outline" size="sm" className="h-8 border-border uppercase text-[10px] font-bold tracking-widest">
+              <Download className="h-3 w-3 mr-2" /> Export
             </Button>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" /> Add Asset
-            </Button>
+            
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="h-8 px-4 bg-primary text-primary-foreground font-bold uppercase text-[10px] tracking-widest">
+                  <Plus className="h-3 w-3 mr-2" /> Add Asset
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-border sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="uppercase tracking-widest text-sm font-bold">New Asset Registration</DialogTitle>
+                  <DialogDescription className="text-xs uppercase tracking-tight text-muted-foreground">
+                    Register a new financial instrument into your institutional portfolio.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Name</Label>
+                    <Input
+                      id="name"
+                      value={newAsset.name}
+                      onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
+                      className="col-span-3 bg-background border-border"
+                      placeholder="Apple Inc."
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="symbol" className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Symbol</Label>
+                    <Input
+                      id="symbol"
+                      value={newAsset.symbol}
+                      onChange={(e) => setNewAsset({ ...newAsset, symbol: e.target.value })}
+                      className="col-span-3 bg-background border-border uppercase"
+                      placeholder="AAPL"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="type" className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Type</Label>
+                    <Select value={newAsset.type} onValueChange={(v) => setNewAsset({ ...newAsset, type: v })}>
+                      <SelectTrigger className="col-span-3 bg-background border-border">
+                        <SelectValue placeholder="Classification" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border">
+                        <SelectItem value="Stock">Stock / Equity</SelectItem>
+                        <SelectItem value="ETF">ETF / Index</SelectItem>
+                        <SelectItem value="Crypto">Crypto Asset</SelectItem>
+                        <SelectItem value="Bond">Fixed Income</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="qty" className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Quantity</Label>
+                    <Input
+                      id="qty"
+                      type="number"
+                      value={newAsset.quantity}
+                      onChange={(e) => setNewAsset({ ...newAsset, quantity: e.target.value })}
+                      className="col-span-3 bg-background border-border"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="price" className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Unit Price</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      value={newAsset.price}
+                      onChange={(e) => setNewAsset({ ...newAsset, price: e.target.value })}
+                      className="col-span-3 bg-background border-border"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleAddAsset} className="w-full bg-primary font-bold uppercase tracking-widest text-[10px]">Execute Order</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </header>
 
         <main className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
-          <Card className="border-none shadow-sm">
-            <CardHeader className="pb-4">
+          <Card className="border-border bg-card shadow-none">
+            <CardHeader className="pb-4 border-b">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
-                    placeholder="Search by name or ticker..."
-                    className="pl-9 bg-muted/50 border-none focus-visible:ring-primary"
+                    placeholder="Search instrument terminal..."
+                    className="pl-9 bg-background border-border h-9 text-xs focus-visible:ring-primary"
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm">
-                    <Filter className="h-4 w-4 mr-2" /> Filter
+                  <Button variant="outline" size="sm" className="h-9 border-border text-[10px] font-bold uppercase tracking-widest">
+                    <Filter className="h-3 w-3 mr-2" /> Filter
                   </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Sort by: Performance
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Value (High to Low)</DropdownMenuItem>
-                      <DropdownMenuItem>Performance (Best first)</DropdownMenuItem>
-                      <DropdownMenuItem>Alphabetical (A-Z)</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead>Asset</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Avg. Price</TableHead>
-                    <TableHead className="text-right">Current Price</TableHead>
-                    <TableHead className="text-right">Total Value</TableHead>
-                    <TableHead className="text-right">Total Return</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allInvestments.map((inv) => (
-                    <TableRow key={inv.id}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-bold">{inv.name}</span>
-                          <span className="text-xs text-muted-foreground">{inv.ticker}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-normal capitalize">
-                          {inv.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{inv.qty}</TableCell>
-                      <TableCell className="text-right">{inv.avgPrice}</TableCell>
-                      <TableCell className="text-right">{inv.currentPrice}</TableCell>
-                      <TableCell className="text-right font-bold">{inv.value}</TableCell>
-                      <TableCell className="text-right">
-                        <span className={`inline-flex items-center gap-1 font-semibold ${inv.status === 'positive' ? 'text-green-600' : 'text-red-600'}`}>
-                          {inv.status === 'positive' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                          {inv.return}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Edit Position</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">Sell Asset</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="h-40 flex items-center justify-center">
+                  <Terminal className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent bg-muted/20 border-border">
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Asset Identifier</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Classification</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Quantity</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Acquisition Cost</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Fair Value</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Total P&L</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {investments?.map((inv) => {
+                      const value = inv.currentMarketPricePerUnit * inv.quantity;
+                      const cost = inv.purchasePricePerUnit * inv.quantity;
+                      const pnl = value - cost;
+                      const pnlPerc = cost > 0 ? (pnl / cost) * 100 : 0;
+                      
+                      return (
+                        <TableRow key={inv.id} className="border-border hover:bg-muted/30">
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-sm">{inv.name}</span>
+                              <span className="text-[10px] font-mono text-muted-foreground uppercase">{inv.symbol}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[9px] uppercase font-bold py-0 border-border bg-muted/50">
+                              {inv.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-xs">{inv.quantity.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-mono text-xs">${inv.purchasePricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right font-mono text-xs font-bold">${inv.currentMarketPricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right">
+                            <span className={`inline-flex items-center gap-1 font-mono text-[11px] font-bold ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              {pnl >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                              {pnlPerc >= 0 ? '+' : ''}{pnlPerc.toFixed(2)}%
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-card border-border">
+                                <DropdownMenuLabel className="text-[10px] uppercase font-bold">Terminal Actions</DropdownMenuLabel>
+                                <DropdownMenuItem className="text-xs uppercase">View History</DropdownMenuItem>
+                                <DropdownMenuItem className="text-xs uppercase">Recalculate Beta</DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-border" />
+                                <DropdownMenuItem onClick={() => handleDelete(inv.id)} className="text-xs uppercase text-destructive font-bold">
+                                  Terminate Position
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {!investments?.length && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-20">
+                          <div className="flex flex-col items-center gap-2 opacity-50">
+                            <Terminal className="h-6 w-6" />
+                            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">No Active Positions Detected</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </main>

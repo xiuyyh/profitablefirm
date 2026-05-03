@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -38,16 +39,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
-const recentInvestments = [
-  { name: "Apple Inc.", ticker: "AAPL", type: "Equity", value: "$12,450.00", change: "+1.2%", status: "positive" },
-  { name: "Vanguard S&P 500 ETF", ticker: "VOO", type: "Index", value: "$28,900.00", change: "-0.4%", status: "negative" },
-  { name: "Tesla Motors", ticker: "TSLA", type: "Equity", value: "$8,210.00", change: "+4.7%", status: "positive" },
-  { name: "Bitcoin", ticker: "BTC", type: "Asset", value: "$5,320.00", change: "+12.1%", status: "positive" },
-];
+import { collection, query, limit, orderBy } from "firebase/firestore";
 
 export default function Dashboard() {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
 
   useEffect(() => {
@@ -55,6 +51,21 @@ export default function Dashboard() {
       router.push("/login");
     }
   }, [user, isUserLoading, router]);
+
+  const investmentsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(
+      collection(firestore, "investorProfiles", user.uid, "investments"),
+      limit(5)
+    );
+  }, [firestore, user?.uid]);
+
+  const { data: investments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
+
+  const totalValue = investments?.reduce((sum, inv) => sum + (inv.currentPrice * inv.quantity), 0) || 0;
+  const totalCost = investments?.reduce((sum, inv) => sum + (inv.purchasePrice * inv.quantity), 0) || 0;
+  const unrealizedPnL = totalValue - totalCost;
+  const pnlPercentage = totalCost > 0 ? (unrealizedPnL / totalCost) * 100 : 0;
 
   if (isUserLoading || !user) {
     return (
@@ -89,7 +100,7 @@ export default function Dashboard() {
               <Bell className="h-4 w-4" />
             </Button>
             <div className="h-7 w-7 rounded bg-muted flex items-center justify-center text-[10px] font-bold border border-border">
-              {user.email?.substring(0, 2).toUpperCase() || "AN"}
+              {user.email?.substring(0, 2).toUpperCase() || "IN"}
             </div>
           </div>
         </header>
@@ -104,7 +115,7 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold tracking-tight">Executive Dashboard</h1>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" className="h-8 px-4 text-xs font-bold bg-primary text-primary-foreground uppercase tracking-wider">
+              <Button size="sm" onClick={() => router.push('/investments')} className="h-8 px-4 text-xs font-bold bg-primary text-primary-foreground uppercase tracking-wider">
                 <PlusCircle className="h-3.5 w-3.5 mr-2" /> Execute Order
               </Button>
             </div>
@@ -113,27 +124,27 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard 
               title="AUM (Total Portfolio)" 
-              value="$142,580.42" 
-              trend={8.2} 
+              value={`$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+              trend={pnlPercentage > 0 ? Number(pnlPercentage.toFixed(1)) : undefined} 
               icon={DollarSign}
               variant="default"
             />
             <MetricCard 
               title="Unrealized P&L" 
-              value="+$24,192.00" 
-              trend={12.4} 
+              value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+              trend={pnlPercentage} 
               icon={TrendingUp}
             />
             <MetricCard 
               title="Daily Variance" 
-              value="+$1,420.50" 
-              trend={1.2} 
+              value="+$0.00" 
+              trend={0} 
               icon={Activity}
               trendLabel="T-0"
             />
             <MetricCard 
               title="Total Positions" 
-              value="12" 
+              value={investments?.length.toString() || "0"} 
               icon={Briefcase}
             />
           </div>
@@ -149,10 +160,10 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {[
-                    { label: "Equities", value: 65, color: "bg-primary" },
-                    { label: "Fixed Income", value: 20, color: "bg-muted-foreground" },
-                    { label: "Liquidity", value: 10, color: "bg-primary/40" },
-                    { label: "Alternative", value: 5, color: "bg-muted" },
+                    { label: "Equities", value: 100, color: "bg-primary" },
+                    { label: "Fixed Income", value: 0, color: "bg-muted-foreground" },
+                    { label: "Liquidity", value: 0, color: "bg-primary/40" },
+                    { label: "Alternative", value: 0, color: "bg-muted" },
                   ].map((asset) => (
                     <div key={asset.label} className="space-y-1.5">
                       <div className="flex justify-between text-[11px] uppercase tracking-tight">
@@ -178,7 +189,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-[13px] font-medium leading-relaxed italic opacity-90">
-                    "Asset concentration in Information Technology detected at 42%. Rebalancing towards Emerging Markets recommended to mitigate sector-specific volatility."
+                    "Live market data synchronization active. Portfolio metrics are being aggregated from Firestore real-time streams."
                   </p>
                 </CardContent>
               </Card>
@@ -190,43 +201,55 @@ export default function Dashboard() {
               <div>
                 <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Primary Positions</CardTitle>
               </div>
-              <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold text-primary">Full Report</Button>
+              <Button variant="ghost" size="sm" onClick={() => router.push('/investments')} className="h-7 text-[10px] uppercase font-bold text-primary">Manage All</Button>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent border-border">
-                    <TableHead className="text-[10px] uppercase tracking-wider h-10">Identifier</TableHead>
-                    <TableHead className="text-[10px] uppercase tracking-wider h-10">Classification</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Fair Value</TableHead>
-                    <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Delta (24h)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentInvestments.map((inv) => (
-                    <TableRow key={inv.ticker} className="border-border hover:bg-muted/30">
-                      <TableCell className="py-3">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-sm tracking-tight">{inv.name}</span>
-                          <span className="text-[10px] font-mono text-muted-foreground">{inv.ticker}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Badge variant="secondary" className="text-[9px] uppercase tracking-tighter bg-muted font-bold px-2 py-0 border border-border">
-                          {inv.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold text-sm py-3">{inv.value}</TableCell>
-                      <TableCell className="text-right py-3">
-                        <span className={`inline-flex items-center gap-1 ${inv.status === 'positive' ? 'text-green-500' : 'text-red-500'} font-mono text-xs font-bold`}>
-                          {inv.status === 'positive' ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                          {inv.change}
-                        </span>
-                      </TableCell>
+              {isInvestmentsLoading ? (
+                <div className="h-20 flex items-center justify-center">
+                  <Terminal className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-border">
+                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Identifier</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider h-10">Classification</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Fair Value</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase tracking-wider h-10">Quantity</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {investments?.map((inv) => (
+                      <TableRow key={inv.id} className="border-border hover:bg-muted/30">
+                        <TableCell className="py-3">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-sm tracking-tight">{inv.name}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground">{inv.symbol}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Badge variant="secondary" className="text-[9px] uppercase tracking-tighter bg-muted font-bold px-2 py-0 border border-border">
+                            {inv.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-mono font-semibold text-sm py-3">
+                          ${(inv.currentPrice * inv.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-xs py-3">
+                          {inv.quantity}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {!investments?.length && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground text-xs uppercase tracking-widest">
+                          No active positions found in terminal
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </main>
