@@ -54,10 +54,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // High frequency, ultra-low amplitude noise (±0.1%)
-      const noise = 0.999 + (Math.random() * 0.002);
+      // Ultra-subtle institutional noise (±0.1%)
+      const noise = 0.9995 + (Math.random() * 0.001);
       setMarketNoise(noise);
-    }, 400);
+    }, 500);
     return () => clearInterval(interval);
   }, []);
 
@@ -82,7 +82,7 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // INSTITUTIONAL MOMENTUM ENGINE (LADDER CLIMBING)
+  // INSTITUTIONAL MOMENTUM ENGINE (LADDER CLIMBING v2)
   useEffect(() => {
     if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user) {
       const interval = setInterval(() => {
@@ -101,29 +101,29 @@ export default function Dashboard() {
           const baseProfitSlice = (profile.dailyProfitAmount || 0) * dayFraction;
           
           /**
-           * LADDER CLIMBING LOGIC (0.8% UP / 0.2% DOWN)
-           * WEIGHTED MOMENTUM (80% Growth / 20% Pullback)
+           * LADDER CLIMBING PROTOCOL
+           * 80% Bias toward 0.8% growth slice
+           * 20% Bias toward 0.2% pullback slice
+           * 5-Step streak triggers 1.0% pullback
            */
           let bias = 0;
           if (accrualStreak.current >= 5) {
-            bias = -1.0; // 1% Pullback after streak
+            bias = -1.0; // 1% Pullback after 5 steps of growth
             accrualStreak.current = 0;
           } else {
             if (Math.random() > 0.2) {
-              bias = 0.8; // Climb
+              bias = 0.8; // Climb 0.8%
               accrualStreak.current += 1;
             } else {
-              bias = -0.2; // Dip
+              bias = -0.2; // Dip 0.2%
               accrualStreak.current = 0;
             }
           }
             
           const profitToApply = baseProfitSlice * (1 + bias);
-
           const targets = investments?.filter(inv => inv.type === profile.profitAssetType) || [];
           
           if (targets.length > 0) {
-            // Apply growth to ALL assets in category to maintain "Asset Distribution"
             targets.forEach(target => {
               const portionProfit = profitToApply / targets.length;
               const profitPerUnit = portionProfit / target.quantity;
@@ -137,14 +137,13 @@ export default function Dashboard() {
               });
             });
           } else {
-            // If no assets of category, inject as Ledger Profit
             const transRef = collection(firestore, "investorProfiles", user.uid, "transactions");
             addDocumentNonBlocking(transRef, {
               investorId: user.uid,
               type: 'Profit',
               amount: profitToApply,
               currency: 'USD',
-              description: 'Real-Time Yield Distribution',
+              description: 'Algorithmic Yield Distribution',
               status: 'Completed',
               createdAt: serverTimestamp()
             });
@@ -158,7 +157,7 @@ export default function Dashboard() {
           
           setTimeout(() => setIsProcessingYield(false), 2000);
         }
-      }, 10000); // Check every 10s
+      }, 10000); 
       
       return () => clearInterval(interval);
     }
@@ -182,6 +181,7 @@ export default function Dashboard() {
     }, 0) || 0;
   }, [transactions]);
 
+  // COST BASIS (DEPOSITS ONLY)
   const netExternalCapital = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Deposit') return sum + tx.amount;
@@ -196,6 +196,7 @@ export default function Dashboard() {
 
   // LIVE ACCOUNT EQUITY & PNL
   const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
+  // Net PnL = Total Value - What the user actually deposited
   const netPnL = totalAccountEquity - netExternalCapital;
   const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
 

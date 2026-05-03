@@ -202,6 +202,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
     const type = yieldConfig.assetType;
     const colRef = collection(firestore, "investorProfiles", investorId, "investments");
+    const transRef = collection(firestore, "investorProfiles", investorId, "transactions");
 
     const assetData: Record<string, Array<{name: string, symbol: string, price: number}>> = {
       "Crypto": [
@@ -231,14 +232,19 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     };
 
     const selected = assetData[type] || assetData["Stock"];
+    let totalInitialCost = 0;
 
     selected.forEach((asset) => {
+      const quantity = Math.floor(Math.random() * 5) + 1; // Lowered quantity for realism
+      const cost = asset.price * quantity;
+      totalInitialCost += cost;
+
       addDocumentNonBlocking(colRef, {
         investorId,
         name: asset.name,
         symbol: asset.symbol,
         type: type,
-        quantity: Math.floor(Math.random() * 50) + 1,
+        quantity: quantity,
         purchasePricePerUnit: asset.price,
         currentMarketPricePerUnit: asset.price,
         currency: "USD",
@@ -249,11 +255,22 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
       });
     });
 
+    // CRITICAL: Create matching deposit to balance the cost basis
+    addDocumentNonBlocking(transRef, {
+      investorId,
+      type: "Deposit",
+      amount: totalInitialCost,
+      currency: "USD",
+      description: `Initial ${type} Portfolio Provisioning Capital`,
+      status: "Completed",
+      createdAt: serverTimestamp()
+    });
+
     setTimeout(() => {
       setIsProvisioning(false);
       toast({
         title: "Portfolio Provisioned",
-        description: `Neural Link loaded ${selected.length} ${type} assets into the investor's distribution.`,
+        description: `Neural Link loaded ${selected.length} assets and established a $${totalInitialCost.toLocaleString()} cost basis.`,
       });
     }, 1500);
   };
@@ -298,7 +315,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-background gap-4">
         <ShieldAlert className="h-12 w-12 text-destructive" />
-        <h2 className="text-xl font-bold uppercase tracking-widest">Profile Identity Missing</h2>
+        <h2 className="text-xl font-bold uppercase tracking-widest text-foreground">Profile Identity Missing</h2>
         <Button variant="outline" onClick={() => router.push("/admin")} className="font-bold uppercase tracking-widest text-xs">
           Terminal Overview
         </Button>
@@ -341,7 +358,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                 {investorProfile.firstName?.substring(0, 1).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">{investorProfile.firstName} {investorProfile.lastName}</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">{investorProfile.firstName} {investorProfile.lastName}</h1>
                 <div className="flex flex-wrap items-center gap-4 mt-1">
                   <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     <Mail className="h-3.5 w-3.5" /> {investorProfile.email}
@@ -418,7 +435,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                         type="number" 
                         value={yieldConfig.amount} 
                         onChange={(e) => setYieldConfig({...yieldConfig, amount: e.target.value})}
-                        className="bg-background border-border font-mono text-sm"
+                        className="bg-background border-border font-mono text-sm text-foreground"
                         placeholder="1200.00"
                       />
                     </div>
@@ -429,7 +446,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                         value={yieldConfig.assetType} 
                         onValueChange={(val) => setYieldConfig({...yieldConfig, assetType: val})}
                       >
-                        <SelectTrigger className="bg-background border-border">
+                        <SelectTrigger className="bg-background border-border text-foreground">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -461,7 +478,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                     <div className="p-4 bg-muted/20 border border-border/50 rounded-sm space-y-2">
                       <h4 className="text-[10px] font-black uppercase tracking-widest">Portfolio Jumpstart</h4>
                       <p className="text-[9px] text-muted-foreground leading-relaxed">
-                        Generate a standard high-fidelity holding portfolio based on the selected classification. This will populate the investor's "Asset Distribution" and "Holding Auditor" sections.
+                        Generate a standard high-fidelity holding portfolio based on the selected classification. This will populate the investor's "Asset Distribution" and establish a cost basis for accurate PnL tracking.
                       </p>
                     </div>
                     
@@ -503,7 +520,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                         value={newTransaction.type} 
                         onValueChange={(val) => setNewTransaction({...newTransaction, type: val})}
                       >
-                        <SelectTrigger className="bg-background border-border">
+                        <SelectTrigger className="bg-background border-border text-foreground">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -519,7 +536,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                         type="number" 
                         value={newTransaction.amount} 
                         onChange={(e) => setNewTransaction({...newTransaction, amount: e.target.value})}
-                        className="bg-background border-border font-mono text-sm"
+                        className="bg-background border-border font-mono text-sm text-foreground"
                         placeholder="0.00"
                       />
                     </div>
@@ -528,7 +545,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                       <Input 
                         value={newTransaction.description} 
                         onChange={(e) => setNewTransaction({...newTransaction, description: e.target.value})}
-                        className="bg-background border-border text-xs"
+                        className="bg-background border-border text-xs text-foreground"
                         placeholder="e.g. Identity verification bonus"
                       />
                     </div>
@@ -559,7 +576,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                       </TableHeader>
                       <TableBody>
                         {isTransactionsLoading ? (
-                          <TableRow><TableCell colSpan={4} className="text-center py-10"><Terminal className="h-4 w-4 animate-spin mx-auto" /></TableCell></TableRow>
+                          <TableRow><TableCell colSpan={4} className="text-center py-10"><Terminal className="h-4 w-4 animate-spin mx-auto text-primary" /></TableCell></TableRow>
                         ) : transactions?.map((tx) => (
                           <TableRow key={tx.id} className="border-border hover:bg-muted/30">
                             <TableCell className="text-[10px] font-mono px-6">{tx.createdAt ? new Date(tx.createdAt.seconds * 1000).toLocaleDateString() : 'Pending'}</TableCell>
@@ -621,7 +638,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                             <TableRow key={inv.id} className="border-border hover:bg-muted/30">
                               <TableCell className="px-6">
                                 <div className="flex flex-col">
-                                  <span className="font-bold text-sm">{inv.name}</span>
+                                  <span className="font-bold text-sm text-foreground">{inv.name}</span>
                                   <span className="text-[10px] font-mono text-muted-foreground uppercase">{inv.symbol}</span>
                                 </div>
                               </TableCell>
@@ -630,8 +647,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                                   {inv.type}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="text-right font-mono text-xs">{inv.quantity.toLocaleString()}</TableCell>
-                              <TableCell className="text-right font-mono text-xs font-bold tabular-nums">${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                              <TableCell className="text-right font-mono text-xs text-foreground">{inv.quantity.toLocaleString()}</TableCell>
+                              <TableCell className="text-right font-mono text-xs font-bold tabular-nums text-primary">${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                               <TableCell className="text-right">
                                 <span className={`font-mono text-[11px] font-bold ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                   {pnlPerc >= 0 ? '+' : ''}{pnlPerc.toFixed(2)}%
@@ -654,7 +671,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                           <TableRow>
                             <TableCell colSpan={6} className="text-center py-20">
                               <div className="flex flex-col items-center gap-2 opacity-50">
-                                <Terminal className="h-6 w-6" />
+                                <Terminal className="h-6 w-6 text-primary" />
                                 <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Zero Holdings Detected</span>
                               </div>
                             </TableCell>
