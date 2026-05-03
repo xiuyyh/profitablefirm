@@ -1,0 +1,318 @@
+{
+  "entities": {
+    "InvestorProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InvestorProfile",
+      "type": "object",
+      "description": "Represents an individual investor's profile within the application, providing basic contact and account details.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the InvestorProfile entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the investor."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the investor."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the investor, used for identification and communication.",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the investor profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the investor profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Investment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Investment",
+      "type": "object",
+      "description": "Represents a single financial holding within an investor's portfolio, detailing its acquisition, type, and current market value.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Investment entity."
+        },
+        "investorId": {
+          "type": "string",
+          "description": "Reference to the InvestorProfile who owns this investment. (Relationship: InvestorProfile 1:N Investment)"
+        },
+        "name": {
+          "type": "string",
+          "description": "A descriptive name for the investment (e.g., 'Apple Stock', 'Vanguard S&P 500 ETF')."
+        },
+        "symbol": {
+          "type": "string",
+          "description": "The ticker symbol or identifier for the investment (e.g., 'AAPL' for Apple stock). Optional for some investment types."
+        },
+        "type": {
+          "type": "string",
+          "description": "The category or type of the investment (e.g., 'Stock', 'Bond', 'Mutual Fund', 'ETF', 'Cryptocurrency')."
+        },
+        "purchaseDate": {
+          "type": "string",
+          "description": "The date and time when the investment was purchased.",
+          "format": "date-time"
+        },
+        "purchasePricePerUnit": {
+          "type": "number",
+          "description": "The price per unit (e.g., per share) at the time of purchase."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The total number of units (e.g., shares, coins) purchased."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency in which the investment was made and is valued (e.g., 'USD', 'EUR', 'JPY')."
+        },
+        "currentMarketPricePerUnit": {
+          "type": "number",
+          "description": "The latest known market price per unit of the investment."
+        },
+        "lastPriceUpdate": {
+          "type": "string",
+          "description": "Timestamp of the last update for 'currentMarketPricePerUnit'.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the investment record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the investment record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "investorId",
+        "name",
+        "type",
+        "purchaseDate",
+        "purchasePricePerUnit",
+        "quantity",
+        "currency",
+        "currentMarketPricePerUnit",
+        "lastPriceUpdate",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "InvestmentDailyMetric": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InvestmentDailyMetric",
+      "type": "object",
+      "description": "Stores daily calculated performance metrics for an individual investment, used for historical charting and analysis of single asset performance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the InvestmentDailyMetric entity."
+        },
+        "investmentId": {
+          "type": "string",
+          "description": "Reference to the Investment this metric belongs to. (Relationship: Investment 1:N InvestmentDailyMetric)"
+        },
+        "metricDate": {
+          "type": "string",
+          "description": "The specific date for which these daily metrics are recorded.",
+          "format": "date"
+        },
+        "closingPricePerUnit": {
+          "type": "number",
+          "description": "The closing market price per unit of the investment on the 'metricDate'."
+        },
+        "dailyGainLossAmount": {
+          "type": "number",
+          "description": "The monetary gain or loss for this specific investment on the 'metricDate'."
+        },
+        "dailyGainLossPercentage": {
+          "type": "number",
+          "description": "The percentage gain or loss for this specific investment on the 'metricDate'."
+        },
+        "totalValueAtClose": {
+          "type": "number",
+          "description": "The total market value of the investment (calculated as 'closingPricePerUnit' * 'quantity' from Investment) at the close of 'metricDate'."
+        }
+      },
+      "required": [
+        "id",
+        "investmentId",
+        "metricDate",
+        "closingPricePerUnit",
+        "dailyGainLossAmount",
+        "dailyGainLossPercentage",
+        "totalValueAtClose"
+      ]
+    },
+    "PortfolioDailyMetric": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PortfolioDailyMetric",
+      "type": "object",
+      "description": "Stores daily calculated performance metrics for an investor's entire portfolio, providing historical data for overall portfolio trend visualization.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PortfolioDailyMetric entity."
+        },
+        "investorId": {
+          "type": "string",
+          "description": "Reference to the InvestorProfile whose portfolio these metrics represent. (Relationship: InvestorProfile 1:N PortfolioDailyMetric)"
+        },
+        "metricDate": {
+          "type": "string",
+          "description": "The specific date for which these daily portfolio metrics are recorded.",
+          "format": "date"
+        },
+        "totalPortfolioValue": {
+          "type": "number",
+          "description": "The aggregate market value of all investments in the investor's portfolio at the close of 'metricDate'."
+        },
+        "totalInvestedAmount": {
+          "type": "number",
+          "description": "The cumulative sum of initial purchase prices for all active investments in the portfolio up to 'metricDate'."
+        },
+        "dailyGainLossAmount": {
+          "type": "number",
+          "description": "The total monetary gain or loss for the entire portfolio on the 'metricDate'."
+        },
+        "dailyGainLossPercentage": {
+          "type": "number",
+          "description": "The total percentage gain or loss for the entire portfolio on the 'metricDate'."
+        },
+        "overallGainLossAmount": {
+          "type": "number",
+          "description": "The total monetary gain or loss for the portfolio from its inception up to 'metricDate'."
+        },
+        "overallGainLossPercentage": {
+          "type": "number",
+          "description": "The total percentage gain or loss for the portfolio from its inception up to 'metricDate'."
+        }
+      },
+      "required": [
+        "id",
+        "investorId",
+        "metricDate",
+        "totalPortfolioValue",
+        "totalInvestedAmount",
+        "dailyGainLossAmount",
+        "dailyGainLossPercentage",
+        "overallGainLossAmount",
+        "overallGainLossPercentage"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/investorProfiles/{investorId}",
+        "definition": {
+          "entityName": "InvestorProfile",
+          "schema": {
+            "$ref": "#/backend/entities/InvestorProfile"
+          },
+          "description": "Stores a single investor's profile, uniquely identified by their Firebase Authentication UID. The `{investorId}` path parameter MUST match `request.auth.uid`.",
+          "params": [
+            {
+              "name": "investorId",
+              "description": "The unique identifier of the investor, corresponding to `request.auth.uid`."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/investorProfiles/{investorId}/investments/{investmentId}",
+        "definition": {
+          "entityName": "Investment",
+          "schema": {
+            "$ref": "#/backend/entities/Investment"
+          },
+          "description": "Stores individual investments owned by a specific investor. The document's `investorId` field MUST match the `{investorId}` path parameter and `request.auth.uid`. This ensures authorization independence.",
+          "params": [
+            {
+              "name": "investorId",
+              "description": "The unique identifier of the investor who owns the investment."
+            },
+            {
+              "name": "investmentId",
+              "description": "The unique identifier for a specific investment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/investorProfiles/{investorId}/investments/{investmentId}/investmentDailyMetrics/{metricId}",
+        "definition": {
+          "entityName": "InvestmentDailyMetric",
+          "schema": {
+            "$ref": "#/backend/entities/InvestmentDailyMetric"
+          },
+          "description": "Stores daily performance metrics for a specific investment. The document MUST include a denormalized 'investorId' field (from the parent InvestorProfile) and its 'investmentId' field MUST match the '{investmentId}' path parameter. Both 'investorId' from the document and the path '{investorId}' MUST match 'request.auth.uid' for authorization independence.",
+          "params": [
+            {
+              "name": "investorId",
+              "description": "The unique identifier of the investor who owns the parent investment."
+            },
+            {
+              "name": "investmentId",
+              "description": "The unique identifier of the parent investment."
+            },
+            {
+              "name": "metricId",
+              "description": "The unique identifier for a specific daily investment metric."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/investorProfiles/{investorId}/portfolioDailyMetrics/{metricId}",
+        "definition": {
+          "entityName": "PortfolioDailyMetric",
+          "schema": {
+            "$ref": "#/backend/entities/PortfolioDailyMetric"
+          },
+          "description": "Stores daily performance metrics for an investor's entire portfolio. The document's `investorId` field MUST match the `{investorId}` path parameter and `request.auth.uid`. This ensures authorization independence.",
+          "params": [
+            {
+              "name": "investorId",
+              "description": "The unique identifier of the investor whose portfolio these metrics represent."
+            },
+            {
+              "name": "metricId",
+              "description": "The unique identifier for a specific daily portfolio metric."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure for PROFITABLEFIRM prioritizes secure, scalable, and debuggable access based on the core design principles. All data is user-private, secured by path-based ownership. The root collection `/investorProfiles` maps directly to Firebase Authentication UIDs, ensuring that each investor's data is isolated and directly accessible only by them. Authorization Independence (CRITICAL): This design eliminates the need for expensive and complex `get()` calls in Firestore Security Rules. This is achieved through strategic denormalization: 1.  **InvestorProfile:** The document ID in `/investorProfiles/{investorId}` is the `request.auth.uid`. Rules can simply check `request.auth.uid == investorId` for direct ownership. 2.  **Investment:** Stored under `/investorProfiles/{investorId}/investments/{investmentId}`. The `Investment` document already contains an `investorId` field. Rules can verify `request.auth.uid == investorId` (from path) and `resource.data.investorId == investorId` (from document field), ensuring ownership without needing to read the parent `InvestorProfile`. 3.  **InvestmentDailyMetric:** Stored under `/investorProfiles/{investorId}/investments/{investmentId}/investmentDailyMetrics/{metricId}`. To ensure authorization independence for this subcollection, the `InvestmentDailyMetric` document **MUST be denormalized to include the `investorId` field** (in addition to its existing `investmentId` field). This allows rules to verify ownership directly (`request.auth.uid == investorId` from path and `resource.data.investorId == investorId` from document field) without needing to fetch the parent `Investment` or `InvestorProfile` documents. 4.  **PortfolioDailyMetric:** Stored under `/investorProfiles/{investorId}/portfolioDailyMetrics/{metricId}`. The `PortfolioDailyMetric` document already contains an `investorId` field. Rules verify `request.auth.uid == investorId` (from path) and `resource.data.investorId == investorId` (from document field). QAPs (Rules are not Filters): The hierarchical path structure combined with denormalized authorization fields ensures secure and efficient `list` operations. For example, a client requesting `/investorProfiles/{request.auth.uid}/investments` is inherently querying only their own investments. Security rules then simply validate that `request.auth.uid` matches the `{investorId}` wildcard in the path, and that any denormalized `investorId` fields within the documents themselves also match. This means the database is only asked for data the user is authorized to see, eliminating the need for client-side filtering or costly rule-based filtering. The strict path-based ownership prevents unauthorized users from even attempting to query other users' data. The structural segregation means all documents within a given collection path share the same security posture, simplifying rule logic. For instance, all documents in `/investorProfiles/{investorId}/investments` are owned by `investorId`."
+  }
+}
