@@ -8,8 +8,7 @@ import {
   Settings, 
   LogOut,
   User,
-  ShieldCheck,
-  Terminal
+  ShieldCheck
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,9 +37,6 @@ export function AppSidebar() {
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border">
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground">
-            <Terminal className="h-5 w-5" />
-          </div>
           <span className="text-sm font-bold tracking-widest text-foreground group-data-[collapsible=icon]:hidden uppercase">
             PROFITABLEFIRM
           </span>
