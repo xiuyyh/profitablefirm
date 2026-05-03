@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, use, useState } from "react";
+import { useEffect, use, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -23,7 +23,7 @@ import {
   PlusCircle,
   History,
   CreditCard,
-  Gift
+  Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -72,6 +72,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
   });
   
   const [isInitialized, setIsInitialized] = useState(false);
+  const [marketNoise, setMarketNoise] = useState(1);
 
   const [newTransaction, setNewTransaction] = useState({
     type: "Deposit",
@@ -104,6 +105,15 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [investorProfile, isInitialized]);
 
+  // LIVE TICKER LOGIC
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const noise = 0.995 + (Math.random() * 0.01);
+      setMarketNoise(noise);
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !investorId) return null;
     return query(collection(firestore, "investorProfiles", investorId, "investments"), orderBy("createdAt", "desc"));
@@ -127,10 +137,25 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [user, isUserLoading, adminProfile, router]);
 
-  const totalValue = investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
-  const totalCost = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
-  const unrealizedPnL = totalValue - totalCost;
-  const pnlPercentage = totalCost > 0 ? (unrealizedPnL / totalCost) * 100 : 0;
+  // REAL-TIME FINANCIAL CALCULATIONS
+  const ledgerBalance = useMemo(() => {
+    return transactions?.reduce((sum, tx) => {
+      if (tx.type === 'Withdrawal') return sum - tx.amount;
+      return sum + tx.amount;
+    }, 0) || 0;
+  }, [transactions]);
+
+  const baseInvestmentValue = useMemo(() => {
+    return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
+  }, [investments]);
+
+  const totalCost = useMemo(() => {
+    return investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
+  }, [investments]);
+
+  const liveAUM = (baseInvestmentValue + ledgerBalance) * marketNoise;
+  const unrealizedPnL = liveAUM - (totalCost + ledgerBalance);
+  const pnlPercentage = (totalCost + ledgerBalance) > 0 ? (unrealizedPnL / (totalCost + ledgerBalance)) * 100 : 0;
 
   const handleSaveYieldConfig = () => {
     if (!firestore || !investorId) return;
@@ -214,9 +239,15 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               <ArrowLeft className="h-3 w-3 mr-1" /> Back to Overview
             </Button>
           </div>
-          <Badge variant="outline" className="border-destructive/30 text-destructive bg-destructive/5 font-mono text-[10px] uppercase tracking-widest">
-            Audit Mode: {investorId}
-          </Badge>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 mr-2">
+              <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-destructive">Live Audit Active</span>
+            </div>
+            <Badge variant="outline" className="border-destructive/30 text-destructive bg-destructive/5 font-mono text-[10px] uppercase tracking-widest">
+              Audit Mode: {investorId}
+            </Badge>
+          </div>
         </header>
 
         <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
@@ -245,14 +276,16 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <MetricCard 
               title="Individual AUM" 
-              value={`$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
+              value={`$${liveAUM.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={DollarSign}
               variant="accent"
+              trend={pnlPercentage !== 0 ? Number(pnlPercentage.toFixed(2)) : undefined}
+              trendLabel="LIVE EQUITY"
             />
             <MetricCard 
               title="Total Gain/Loss" 
-              value={`$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2 })}`} 
-              trend={pnlPercentage}
+              value={`${unrealizedPnL >= 0 ? '+' : ''}$${unrealizedPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+              trend={Number(pnlPercentage.toFixed(2))}
               icon={TrendingUp}
             />
             <MetricCard 
@@ -456,7 +489,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                       </TableHeader>
                       <TableBody>
                         {investments?.map((inv) => {
-                          const value = inv.currentMarketPricePerUnit * inv.quantity;
+                          const value = (inv.currentMarketPricePerUnit * inv.quantity) * marketNoise;
                           const cost = inv.purchasePricePerUnit * inv.quantity;
                           const pnl = value - cost;
                           const pnlPerc = cost > 0 ? (pnl / cost) * 100 : 0;
@@ -475,7 +508,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right font-mono text-xs">{inv.quantity.toLocaleString()}</TableCell>
-                              <TableCell className="text-right font-mono text-xs font-bold">${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                              <TableCell className="text-right font-mono text-xs font-bold tabular-nums">${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                               <TableCell className="text-right">
                                 <span className={`font-mono text-[11px] font-bold ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                   {pnlPerc >= 0 ? '+' : ''}{pnlPerc.toFixed(2)}%
