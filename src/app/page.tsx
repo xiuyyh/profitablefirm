@@ -13,7 +13,6 @@ import {
   TrendingUp, 
   Briefcase, 
   Activity, 
-  Bell, 
   Search,
   PlusCircle,
   Shield,
@@ -47,7 +46,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [isProcessingYield, setIsProcessingYield] = useState(false);
   
-  // UI Volatility Ticker state - increased frequency for better real-time feel
+  // UI Volatility Ticker state - High frequency for live market feel
   const [marketNoise, setMarketNoise] = useState(1);
 
   useEffect(() => {
@@ -59,10 +58,10 @@ export default function Dashboard() {
   // High-Frequency Market Ticker Simulation
   useEffect(() => {
     const interval = setInterval(() => {
-      // Fluctuation between -0.2% and +0.2% every 1.5 seconds for active trading feel
-      const noise = 0.998 + (Math.random() * 0.004);
+      // Fluctuation between -0.5% and +0.5% every 500ms for a very active feel
+      const noise = 0.995 + (Math.random() * 0.01);
       setMarketNoise(noise);
-    }, 1500);
+    }, 500);
     return () => clearInterval(interval);
   }, []);
 
@@ -101,8 +100,8 @@ export default function Dashboard() {
       const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
       const daysPassed = secondsPassed / (24 * 3600);
 
-      // Process if at least 10 minutes have passed
-      if (daysPassed > 0.007) { 
+      // Process if at least 5 minutes have passed (0.0034 days)
+      if (daysPassed > 0.0034) { 
         setIsProcessingYield(true);
         
         const baseProfit = profile.dailyProfitAmount * daysPassed;
