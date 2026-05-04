@@ -41,6 +41,18 @@
           "type": "string",
           "description": "The asset class (e.g., 'Crypto', 'Stock') where the profit will be applied."
         },
+        "manualAumOverride": {
+          "type": "number",
+          "description": "Manual override for Total Account Equity."
+        },
+        "manualLedgerOverride": {
+          "type": "number",
+          "description": "Manual override for Financial Ledger balance."
+        },
+        "manualPnlOverride": {
+          "type": "number",
+          "description": "Manual override for Net Delta (PnL)."
+        },
         "lastYieldAccrualAt": {
           "type": "string",
           "description": "Timestamp of the last yield accrual process.",

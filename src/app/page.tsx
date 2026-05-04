@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
@@ -53,7 +54,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // High-frequency institutional noise (±0.1%)
       const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
     }, 400);
@@ -81,15 +81,15 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // LEDGER ACCOUNTING (Verifiable Cash Reserves)
+  // LEDGER ACCOUNTING (Verifiable Cash Reserves with Override support)
   const ledgerBalance = useMemo(() => {
-    return transactions?.reduce((sum, tx) => {
+    const calculated = transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum + tx.amount;
     }, 0) || 0;
-  }, [transactions]);
+    return profile?.manualLedgerOverride ?? calculated;
+  }, [transactions, profile]);
 
-  // CAPITAL INTEGRITY: Cost basis of holdings + net cash injected
   const netExternalCapital = useMemo(() => {
     const assetCostBasis = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
     const netCashInjected = transactions?.reduce((sum, tx) => {
@@ -100,7 +100,7 @@ export default function Dashboard() {
     return assetCostBasis + netCashInjected;
   }, [investments, transactions]);
 
-  // INSTITUTIONAL MOMENTUM ENGINE (Ladder Climbing v5)
+  // INSTITUTIONAL MOMENTUM ENGINE
   useEffect(() => {
     if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user && netExternalCapital > 0) {
       const interval = setInterval(() => {
@@ -110,7 +110,7 @@ export default function Dashboard() {
           : new Date(profile.createdAt?.seconds * 1000 || Date.now());
 
         const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
-        const stepSize = 60; // 1-minute resolution
+        const stepSize = 60;
 
         if (secondsPassed >= stepSize && !isProcessingYield) { 
           setIsProcessingYield(true);
@@ -119,20 +119,19 @@ export default function Dashboard() {
           let cumulativeProfit = 0;
           let currentStreak = accrualStreak.current;
 
-          // DETERMINISTIC STEP SIMULATION (80/20 Growth Bias)
           for (let i = 0; i < stepsToProcess; i++) {
             const baseProfitPerStep = (profile.dailyProfitAmount || 0) / (24 * 60);
             let multiplier = 1;
 
             if (currentStreak >= 5) {
-              multiplier = -1.2; // 1.0% Retracement protocol
+              multiplier = -1.2; 
               currentStreak = 0;
             } else {
               if (Math.random() > 0.2) {
-                multiplier = 1.8; // Momentum Up (+0.8% weight)
+                multiplier = 1.8; 
                 currentStreak += 1;
               } else {
-                multiplier = 0.8; // Momentum Stabilize (+0.2% weight)
+                multiplier = 0.8; 
                 currentStreak = 0;
               }
             }
@@ -182,6 +181,16 @@ export default function Dashboard() {
     }
   }, [profile, investments, firestore, user, isProcessingYield, netExternalCapital]);
 
+  const baseInvestmentValue = useMemo(() => {
+    return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
+  }, [investments]);
+
+  // DETERMINISTIC EQUITY CALCULATION (Respecting Overrides)
+  const settledEquity = profile?.manualAumOverride ?? (baseInvestmentValue + ledgerBalance);
+  const totalAccountEquity = settledEquity * marketNoise;
+  const netPnL = profile?.manualPnlOverride ?? (settledEquity - netExternalCapital);
+  const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
+
   const sortedInvestments = useMemo(() => {
     if (!investments) return [];
     return [...investments].sort((a, b) => {
@@ -190,27 +199,6 @@ export default function Dashboard() {
       return timeB - timeA;
     });
   }, [investments]);
-
-  const baseInvestmentValue = useMemo(() => {
-    return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
-  }, [investments]);
-
-  // DETERMINISTIC EQUITY CALCULATION
-  const totalAccountEquity = (baseInvestmentValue + ledgerBalance) * marketNoise;
-  // Use a noise-free value for trend calculation to prevent "False Red"
-  const settledEquity = baseInvestmentValue + ledgerBalance;
-  const netPnL = settledEquity - netExternalCapital;
-  const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
-
-  const allocation = useMemo(() => {
-    if (!investments || baseInvestmentValue === 0) return [];
-    const types = ["Crypto", "Stock", "Forex", "Bond", "ETF"];
-    return types.map(type => {
-      const value = investments.filter(i => i.type === type).reduce((s, i) => s + (i.currentMarketPricePerUnit * i.quantity), 0);
-      const percentage = (value / baseInvestmentValue) * 100;
-      return { type, value, percentage };
-    }).filter(a => a.value > 0);
-  }, [investments, baseInvestmentValue]);
 
   if (isUserLoading || !user) {
     return (
@@ -239,8 +227,10 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 mr-2">
-              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-[9px] font-bold uppercase tracking-widest text-primary glow-text">Neural Link Active</span>
+              <div className={`h-2 w-2 rounded-full ${profile?.autoProfitEnabled ? 'bg-primary animate-pulse' : 'bg-muted'}`} />
+              <span className={`text-[9px] font-bold uppercase tracking-widest ${profile?.autoProfitEnabled ? 'text-primary glow-text' : 'text-muted-foreground'}`}>
+                {profile?.autoProfitEnabled ? 'Neural Link Active' : 'Static Node'}
+              </span>
             </div>
             <div className="h-7 w-7 rounded-sm bg-primary/10 flex items-center justify-center text-[10px] font-bold border border-primary/30 text-primary">
               {user.email?.substring(0, 2).toUpperCase() || "US"}
@@ -292,33 +282,29 @@ export default function Dashboard() {
             <div className="lg:col-span-2">
               <PerformanceChart currentTotal={settledEquity} />
             </div>
-            <div className="space-y-6">
-              <Card className="border border-border bg-card/40 shadow-none border-glow">
-                <CardHeader className="pb-2 border-b border-border/10 bg-muted/10">
-                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Asset Distribution</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-5 pt-6">
-                  {allocation.length > 0 ? allocation.map((item) => (
-                    <div key={item.type} className="space-y-1.5">
-                      <div className="flex justify-between text-[11px] uppercase tracking-widest font-bold">
-                        <span>{item.type}</span>
-                        <span className="text-primary glow-text">{item.percentage.toFixed(1)}%</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-muted rounded-none overflow-hidden border border-border/10">
-                        <div 
-                          className="h-full bg-primary transition-all duration-1000 glow-primary" 
-                          style={{ width: `${item.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="py-12 text-center opacity-30 text-[9px] font-black uppercase tracking-[0.4em]">
-                      NO ASSET ALLOCATION DETECTED
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="border border-border bg-card/40 shadow-none border-glow h-full">
+              <CardHeader className="pb-2 border-b border-border/10 bg-muted/10">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">System Status</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="p-4 bg-muted/20 border border-border/10 flex flex-col items-center justify-center gap-3 text-center">
+                  <Activity className={`h-8 w-8 ${profile?.autoProfitEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest">{profile?.autoProfitEnabled ? 'TRADING ACTIVE' : 'TRADING STATIC'}</p>
+                    <p className="text-[9px] text-muted-foreground uppercase mt-1">Institutional nodes processing growth steps.</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                    <span>Engine Load</span>
+                    <span>{profile?.autoProfitEnabled ? '84%' : '0%'}</span>
+                  </div>
+                  <div className="h-1 bg-muted rounded-none overflow-hidden">
+                    <div className="h-full bg-primary glow-primary" style={{ width: profile?.autoProfitEnabled ? '84%' : '0%' }} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <Card className="border border-border bg-card shadow-none border-glow">
@@ -326,7 +312,6 @@ export default function Dashboard() {
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
                 <Activity className="h-4 w-4 text-primary" /> Live Holding Auditor
               </CardTitle>
-              <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black border-primary/20 text-primary">Real-Time Sync</Badge>
             </CardHeader>
             <CardContent className="p-0">
               {isInvestmentsLoading ? (
@@ -339,8 +324,7 @@ export default function Dashboard() {
                     <TableRow className="hover:bg-transparent border-border bg-muted/10">
                       <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Security</TableHead>
                       <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10">Class</TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] h-10">Valuation (USD)</TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Position Size</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Valuation (USD)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -353,25 +337,15 @@ export default function Dashboard() {
                           </div>
                         </TableCell>
                         <TableCell className="py-4">
-                          <Badge variant="secondary" className="text-[9px] uppercase tracking-widest bg-muted/30 font-bold px-2 py-0 border border-primary/10">
+                          <Badge variant="secondary" className="text-[9px] uppercase tracking-widest bg-muted/30 font-bold px-2 py-0">
                             {inv.type}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right font-mono font-black text-sm py-4 tabular-nums text-primary glow-text">
+                        <TableCell className="text-right font-mono font-black text-sm py-4 px-6 text-primary glow-text">
                           ${((inv.currentMarketPricePerUnit * inv.quantity) * marketNoise).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-[10px] py-4 px-6 text-muted-foreground font-bold tracking-widest">
-                          {inv.quantity.toLocaleString()} UNITS
                         </TableCell>
                       </TableRow>
                     ))}
-                    {!sortedInvestments.length && (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-20 text-muted-foreground text-[9px] font-black uppercase tracking-[0.5em] opacity-30">
-                          ZERO HOLDINGS DATA
-                        </TableCell>
-                      </TableRow>
-                    )}
                   </TableBody>
                 </Table>
               )}
