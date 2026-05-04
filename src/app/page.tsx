@@ -52,20 +52,25 @@ export default function Dashboard() {
     }
   }, [user, isUserLoading, router]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const noise = 0.999 + (Math.random() * 0.002);
-      setMarketNoise(noise);
-    }, 400);
-    return () => clearInterval(interval);
-  }, []);
-
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, "investorProfiles", user.uid);
   }, [firestore, user?.uid]);
 
   const { data: profile } = useDoc(profileRef);
+
+  // TICKER NOISE CONTROLLER
+  useEffect(() => {
+    if (!profile?.autoProfitEnabled) {
+      setMarketNoise(1);
+      return;
+    }
+    const interval = setInterval(() => {
+      const noise = 0.999 + (Math.random() * 0.002);
+      setMarketNoise(noise);
+    }, 400);
+    return () => clearInterval(interval);
+  }, [profile?.autoProfitEnabled]);
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -81,7 +86,7 @@ export default function Dashboard() {
 
   const { data: transactions } = useCollection(transactionsQuery);
 
-  // LEDGER ACCOUNTING (Verifiable Cash Reserves with Override support)
+  // LEDGER ACCOUNTING
   const ledgerBalance = useMemo(() => {
     const calculated = transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -185,7 +190,7 @@ export default function Dashboard() {
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // DETERMINISTIC EQUITY CALCULATION (Respecting Overrides)
+  // DETERMINISTIC EQUITY CALCULATION
   const settledEquity = profile?.manualAumOverride ?? (baseInvestmentValue + ledgerBalance);
   const totalAccountEquity = settledEquity * marketNoise;
   const netPnL = profile?.manualPnlOverride ?? (settledEquity - netExternalCapital);

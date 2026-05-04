@@ -116,14 +116,18 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [investorProfile, isInitialized]);
 
-  // SYNCED HIGH-FREQUENCY TICKER
+  // SYNCED HIGH-FREQUENCY TICKER (PAUSES ON STATIC)
   useEffect(() => {
+    if (!investorProfile?.autoProfitEnabled) {
+      setMarketNoise(1);
+      return;
+    }
     const interval = setInterval(() => {
       const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
     }, 400);
     return () => clearInterval(interval);
-  }, []);
+  }, [investorProfile?.autoProfitEnabled]);
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !investorId) return null;
@@ -206,8 +210,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     });
 
     toast({
-      title: "Yield Protocol Updated",
-      description: `Automated ${yieldConfig.assetType} profit of $${yieldConfig.amount}/day has been ${yieldConfig.enabled ? 'activated' : 'deactivated'}.`,
+      title: yieldConfig.enabled ? "Protocol Online" : "Protocol Suspended",
+      description: `Neural Link ${yieldConfig.enabled ? 'activated' : 'deactivated'}. Account balance is now ${yieldConfig.enabled ? 'active' : 'static'}.`,
     });
   };
 
@@ -380,7 +384,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             />
             <MetricCard 
               title="Engine Status" 
-              value={investorProfile.autoProfitEnabled ? "OPERATIONAL" : "OFFLINE"} 
+              value={investorProfile.autoProfitEnabled ? "OPERATIONAL" : "STATIC"} 
               icon={Zap}
             />
             <MetricCard 
@@ -410,7 +414,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label className="text-[10px] font-bold uppercase tracking-widest">Active Status</Label>
-                        <p className="text-[9px] text-muted-foreground uppercase">Toggle trading activity</p>
+                        <p className="text-[9px] text-muted-foreground uppercase">Toggle trading & market movement</p>
                       </div>
                       <Switch 
                         checked={yieldConfig.enabled} 
