@@ -23,7 +23,8 @@ import {
   Database,
   Loader2,
   Lock,
-  Unlock
+  Unlock,
+  Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 

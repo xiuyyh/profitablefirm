@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -12,7 +12,10 @@ import {
   ShieldAlert,
   Filter,
   Download,
-  User as UserIcon
+  User as UserIcon,
+  Activity,
+  Search,
+  Database
 } from "lucide-react";
 import { 
   Card, 
@@ -38,6 +41,7 @@ export default function GlobalLedgerPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
 
   const profileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -46,6 +50,7 @@ export default function GlobalLedgerPage() {
 
   const { data: profile } = useDoc(profileRef);
 
+  // Use collectionGroup to aggregate all transactions from all investors
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collectionGroup(firestore, "transactions");
@@ -53,15 +58,26 @@ export default function GlobalLedgerPage() {
 
   const { data: rawTransactions, isLoading } = useCollection(transactionsQuery);
 
-  // CLIENT-SIDE SORTING (NO INDEXES REQUIRED)
+  // Optimized client-side processing to bypass index barriers
   const transactions = useMemo(() => {
-    if (!rawTransactions) return null;
-    return [...rawTransactions].sort((a, b) => {
-      const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
-  }, [rawTransactions]);
+    if (!rawTransactions) return [];
+    
+    return [...rawTransactions]
+      .filter(tx => 
+        tx.investorId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => {
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeB - timeA;
+      });
+  }, [rawTransactions, searchTerm]);
+
+  const totalVolume = useMemo(() => {
+    return transactions.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+  }, [transactions]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -75,7 +91,7 @@ export default function GlobalLedgerPage() {
   if (isUserLoading || !profile || profile.role !== "admin") {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Terminal className="h-8 w-8 animate-pulse text-destructive" />
+        <Terminal className="h-8 w-8 animate-pulse text-primary" />
       </div>
     );
   }
@@ -88,94 +104,101 @@ export default function GlobalLedgerPage() {
           <div className="flex items-center gap-4">
             <SidebarTrigger />
             <div className="h-4 w-px bg-border mx-2" />
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Globe className="h-5 w-5 text-destructive" />
-              Global Financial Ledger
+            <h1 className="text-xl font-bold flex items-center gap-2 glow-text">
+              <Globe className="h-5 w-5 text-primary" />
+              GLOBAL LEDGER TERMINAL
             </h1>
           </div>
           <div className="flex items-center gap-4">
-             <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest">
-              <Download className="h-3 w-3 mr-2" /> Export Logs
+             <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-widest border-primary/20 text-primary">
+              <Download className="h-3 w-3 mr-2" /> EXPORT AUDIT LOG
             </Button>
           </div>
         </header>
 
         <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="bg-primary/5 border-primary/20 shadow-none border-glow">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">TOTAL THROUGHPUT</span>
+                  <Activity className="h-4 w-4 text-primary opacity-50" />
+                </div>
+                <h3 className="text-2xl font-black mt-2 font-mono glow-text">
+                  ${totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </h3>
+                <p className="text-[9px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Aggregated network volume</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-card border-border shadow-none border-glow">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">NODE ACTIVITY</span>
+                  <Database className="h-4 w-4 text-primary opacity-50" />
+                </div>
+                <h3 className="text-2xl font-black mt-2 font-mono">{transactions.length}</h3>
+                <p className="text-[9px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">Total historical events</p>
+              </CardContent>
+            </Card>
             <Card className="bg-destructive/5 border-destructive/20 shadow-none">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Network Throughput</span>
-                  <Globe className="h-4 w-4 text-destructive opacity-50" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground text-destructive">SECURITY LEVEL</span>
+                  <ShieldAlert className="h-4 w-4 text-destructive opacity-50" />
                 </div>
-                <h3 className="text-2xl font-bold mt-2 font-mono">LIVE</h3>
-                <p className="text-[9px] text-muted-foreground mt-1 uppercase">Monitoring all transaction nodes</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-primary/5 border-primary/20 shadow-none">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Active Sessions</span>
-                  <UserIcon className="h-4 w-4 text-primary opacity-50" />
-                </div>
-                <h3 className="text-2xl font-bold mt-2 font-mono">{transactions?.length || 0}</h3>
-                <p className="text-[9px] text-muted-foreground mt-1 uppercase">Total historical records</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-card border-border shadow-none">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase text-muted-foreground">Security Level</span>
-                  <ShieldAlert className="h-4 w-4 text-yellow-500 opacity-50" />
-                </div>
-                <h3 className="text-2xl font-bold mt-2 font-mono uppercase">Standard</h3>
-                <p className="text-[9px] text-muted-foreground mt-1 uppercase">End-to-end encrypted</p>
+                <h3 className="text-2xl font-black mt-2 font-mono text-destructive uppercase italic">L4 TERMINAL</h3>
+                <p className="text-[9px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">End-to-end audit enabled</p>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="border-border bg-card shadow-none">
+          <Card className="border-border bg-card shadow-none border-glow overflow-hidden">
             <CardHeader className="border-b bg-muted/5 flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-bold uppercase tracking-widest">Global Statement of Activity</CardTitle>
-                <CardDescription className="text-[10px] uppercase mt-1">Audit-level visibility into all cross-investor activity</CardDescription>
+                <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground">Global Statement of Activity</CardTitle>
+                <CardDescription className="text-[9px] uppercase mt-1 tracking-widest">High-fidelity cross-investor financial history</CardDescription>
               </div>
               <div className="flex gap-2">
                  <div className="relative">
-                    <Filter className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input placeholder="Filter entries..." className="h-9 pl-8 text-xs bg-background border-border w-[200px]" />
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input 
+                      placeholder="FILTER NODES..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="h-9 pl-8 text-xs bg-background border-border w-[240px] font-mono rounded-none" 
+                    />
                  </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               {isLoading ? (
-                <div className="h-40 flex items-center justify-center">
-                  <Terminal className="h-6 w-6 animate-spin text-destructive" />
+                <div className="h-60 flex items-center justify-center">
+                  <Terminal className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/20 border-border">
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Timestamp</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Investor ID</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Type</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Description</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Value (USD)</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black tracking-widest px-6 h-12">Timestamp</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black tracking-widest h-12">Investor Node</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black tracking-widest h-12">Protocol</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black tracking-widest h-12">Description</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-black tracking-widest px-6 h-12">Delta (USD)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {transactions?.map((tx) => (
-                      <TableRow key={tx.id} className="border-border hover:bg-muted/30">
-                        <TableCell className="font-mono text-[10px] font-bold text-muted-foreground">
+                    {transactions.map((tx) => (
+                      <TableRow key={tx.id} className="border-border hover:bg-primary/5 transition-all">
+                        <TableCell className="font-mono text-[10px] font-bold text-muted-foreground px-6">
                           {tx.createdAt ? new Date(tx.createdAt.seconds * 1000).toLocaleString() : 'PENDING'}
                         </TableCell>
                         <TableCell>
-                          <span className="text-[10px] font-mono uppercase bg-muted px-1.5 py-0.5 rounded border border-border">
-                            {tx.investorId?.substring(0, 8)}...
+                          <span className="text-[9px] font-mono uppercase bg-muted px-2 py-0.5 rounded-none border border-border text-foreground">
+                            {tx.investorId?.substring(0, 12)}...
                           </span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`text-[9px] uppercase font-bold px-2 py-0.5 ${
+                          <Badge variant="outline" className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-none ${
                             tx.type === 'Deposit' ? 'border-green-500/30 text-green-500' : 
                             tx.type === 'Bonus' ? 'border-yellow-500/30 text-yellow-500' : 
                             tx.type === 'Withdrawal' ? 'border-red-500/30 text-red-500' : 'border-primary/30 text-primary'
@@ -184,19 +207,19 @@ export default function GlobalLedgerPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="text-[11px] font-medium text-muted-foreground">{tx.description}</span>
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase">{tx.description}</span>
                         </TableCell>
-                        <TableCell className={`text-right font-mono text-xs font-bold ${tx.type === 'Withdrawal' ? 'text-red-500' : 'text-green-500'}`}>
+                        <TableCell className={`text-right font-mono text-xs font-black px-6 ${tx.type === 'Withdrawal' ? 'text-red-500' : 'text-green-500 glow-text'}`}>
                           {tx.type === 'Withdrawal' ? '-' : '+'}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </TableCell>
                       </TableRow>
                     ))}
-                    {!transactions?.length && (
+                    {!transactions.length && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-24">
-                          <div className="flex flex-col items-center gap-2 opacity-30">
-                            <Terminal className="h-10 w-10 mb-2" />
-                            <span className="text-[10px] uppercase font-bold tracking-[0.3em]">No transaction records found on network</span>
+                        <TableCell colSpan={5} className="text-center py-32">
+                          <div className="flex flex-col items-center gap-4 opacity-30">
+                            <Terminal className="h-12 w-12 mb-2" />
+                            <span className="text-[10px] uppercase font-black tracking-[0.5em]">ZERO ACTIVITY RECORDS ON NETWORK</span>
                           </div>
                         </TableCell>
                       </TableRow>
