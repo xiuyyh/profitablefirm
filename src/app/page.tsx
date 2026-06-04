@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -10,7 +10,6 @@ import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { 
   DollarSign, 
   TrendingUp, 
-  Briefcase, 
   Activity, 
   Search,
   Shield,
@@ -34,16 +33,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc, serverTimestamp } from "firebase/firestore";
-import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { collection, doc } from "firebase/firestore";
 
 export default function Dashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
-  const [isProcessingYield, setIsProcessingYield] = useState(false);
   const [marketNoise, setMarketNoise] = useState(1);
-  const accrualStreak = useRef(0);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -58,12 +54,14 @@ export default function Dashboard() {
 
   const { data: profile } = useDoc(profileRef);
 
+  // Visual market wiggle effect - only active if trading is enabled by admin
   useEffect(() => {
     if (!profile?.autoProfitEnabled) {
       setMarketNoise(1);
       return;
     }
     const interval = setInterval(() => {
+      // Subtle visual wiggling between 0.999 and 1.001
       const noise = 0.999 + (Math.random() * 0.002);
       setMarketNoise(noise);
     }, 400);
@@ -122,86 +120,6 @@ export default function Dashboard() {
     return assetCostBasis + netCashInjected;
   }, [investments, transactions]);
 
-  useEffect(() => {
-    if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user && netExternalCapital > 0) {
-      const interval = setInterval(() => {
-        const now = new Date();
-        const lastAccrual = profile.lastYieldAccrualAt 
-          ? new Date(profile.lastYieldAccrualAt.seconds * 1000) 
-          : new Date(profile.createdAt?.seconds * 1000 || Date.now());
-
-        const secondsPassed = (now.getTime() - lastAccrual.getTime()) / 1000;
-        const stepSize = 60;
-
-        if (secondsPassed >= stepSize && !isProcessingYield) { 
-          setIsProcessingYield(true);
-          
-          const stepsToProcess = Math.min(Math.floor(secondsPassed / stepSize), 1440);
-          let cumulativeProfit = 0;
-          let currentStreak = accrualStreak.current;
-
-          for (let i = 0; i < stepsToProcess; i++) {
-            const baseProfitPerStep = (profile.dailyProfitAmount || 0) / (24 * 60);
-            let multiplier = 1;
-
-            if (currentStreak >= 5) {
-              multiplier = -1.2; 
-              currentStreak = 0;
-            } else {
-              if (Math.random() > 0.2) {
-                multiplier = 1.8; 
-                currentStreak += 1;
-              } else {
-                multiplier = 0.8; 
-                currentStreak = 0;
-              }
-            }
-            cumulativeProfit += baseProfitPerStep * multiplier;
-          }
-
-          accrualStreak.current = currentStreak;
-          const targets = investments?.filter(inv => inv.type === profile.profitAssetType) || [];
-          
-          if (targets.length > 0) {
-            targets.forEach(target => {
-              const portionProfit = cumulativeProfit / targets.length;
-              const profitPerUnit = portionProfit / target.quantity;
-              const newPrice = target.currentMarketPricePerUnit + profitPerUnit;
-
-              const invRef = doc(firestore, "investorProfiles", user.uid, "investments", target.id);
-              updateDocumentNonBlocking(invRef, {
-                currentMarketPricePerUnit: newPrice,
-                lastPriceUpdate: serverTimestamp(),
-                updatedAt: serverTimestamp()
-              });
-            });
-          } else {
-            const transRef = collection(firestore, "investorProfiles", user.uid, "transactions");
-            addDocumentNonBlocking(transRef, {
-              investorId: user.uid,
-              type: 'Profit',
-              amount: cumulativeProfit,
-              currency: 'USD',
-              description: stepsToProcess > 1 ? `Catch-up (${stepsToProcess}m)` : 'Earnings Update',
-              status: 'Completed',
-              createdAt: serverTimestamp()
-            });
-          }
-
-          const profRef = doc(firestore, "investorProfiles", user.uid);
-          updateDocumentNonBlocking(profRef, {
-            lastYieldAccrualAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
-          
-          setTimeout(() => setIsProcessingYield(false), 1500);
-        }
-      }, 5000); 
-      
-      return () => clearInterval(interval);
-    }
-  }, [profile, investments, firestore, user, isProcessingYield, netExternalCapital]);
-
   const baseInvestmentValue = useMemo(() => {
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
@@ -256,7 +174,7 @@ export default function Dashboard() {
                 <Shield className="h-4 w-4 text-primary" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Investor Dashboard</span>
               </div>
-              <h1 className="text-2xl font-black tracking-widest glow-text">MY PORTFOLIO</h1>
+              <h1 className="text-2xl font-black tracking-widest glow-text uppercase">My Portfolio</h1>
             </div>
           </div>
 
@@ -283,8 +201,8 @@ export default function Dashboard() {
               trendLabel="TOTAL GROWTH"
             />
             <MetricCard 
-              title="Daily Earnings" 
-              value={profile?.autoProfitEnabled ? `+$${profile.dailyProfitAmount.toFixed(2)}/day` : "OFFLINE"} 
+              title="System Status" 
+              value={profile?.autoProfitEnabled ? "TRADING ACTIVE" : "SYSTEM PAUSED"} 
               icon={Zap}
             />
           </div>
@@ -302,16 +220,16 @@ export default function Dashboard() {
                   <Activity className={`h-8 w-8 ${profile?.autoProfitEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest">{profile?.autoProfitEnabled ? 'SYSTEM RUNNING' : 'SYSTEM PAUSED'}</p>
-                    <p className="text-[9px] text-muted-foreground uppercase mt-1">Smart systems are handling your growth.</p>
+                    <p className="text-[9px] text-muted-foreground uppercase mt-1">Smart systems are managing your account.</p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                    <span>System Load</span>
-                    <span>{profile?.autoProfitEnabled ? '84%' : '0%'}</span>
+                    <span>System Stability</span>
+                    <span>{profile?.autoProfitEnabled ? '99.9%' : '0%'}</span>
                   </div>
                   <div className="h-1 bg-muted rounded-none overflow-hidden">
-                    <div className="h-full bg-primary glow-primary" style={{ width: profile?.autoProfitEnabled ? '84%' : '0%' }} />
+                    <div className="h-full bg-primary glow-primary" style={{ width: profile?.autoProfitEnabled ? '100%' : '0%' }} />
                   </div>
                 </div>
               </CardContent>

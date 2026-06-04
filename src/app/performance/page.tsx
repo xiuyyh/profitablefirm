@@ -83,6 +83,7 @@ export default function PerformancePage() {
 
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
+      if (tx.status !== 'Completed') return sum;
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum + tx.amount;
     }, 0) || 0;
@@ -91,6 +92,7 @@ export default function PerformancePage() {
   const netExternalCapital = useMemo(() => {
     const assetCostBasis = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
     const netCashInjected = transactions?.reduce((sum, tx) => {
+      if (tx.status !== 'Completed') return sum;
       if (tx.type === 'Deposit') return sum + tx.amount;
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum;
@@ -98,12 +100,12 @@ export default function PerformancePage() {
     return assetCostBasis + netCashInjected;
   }, [investments, transactions]);
 
-  const settledEquity = useMemo(() => {
-    const assetValue = investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
-    return assetValue + ledgerBalance;
-  }, [investments, ledgerBalance]);
+  const baseInvestmentValue = useMemo(() => {
+    return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
+  }, [investments]);
 
-  const totalPnL = settledEquity - netExternalCapital;
+  const settledEquity = profile?.manualAumOverride ?? (baseInvestmentValue + ledgerBalance);
+  const totalPnL = profile?.manualPnlOverride ?? (settledEquity - netExternalCapital);
   const roiPercentage = netExternalCapital > 0 ? (totalPnL / netExternalCapital) * 100 : 0;
 
   const profitLogs = useMemo(() => {
@@ -163,10 +165,10 @@ export default function PerformancePage() {
               trendLabel="NET GAIN"
             />
             <MetricCard 
-              title="Today's Earnings" 
+              title="Recent Earnings" 
               value={`$${last24hProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={Zap}
-              trendLabel="DAILY SPEED"
+              trendLabel="LAST 24H"
             />
             <MetricCard 
               title="Return on Investment" 
@@ -175,8 +177,8 @@ export default function PerformancePage() {
               trend={roiPercentage}
             />
             <MetricCard 
-              title="Status" 
-              value="ACTIVE" 
+              title="System Status" 
+              value={profile?.autoProfitEnabled ? "ACTIVE" : "PAUSED"} 
               icon={ShieldCheck}
             />
           </div>
@@ -207,14 +209,14 @@ export default function PerformancePage() {
                     </div>
                     <div className="flex items-center gap-1 text-primary">
                       <ArrowUpRight className="h-4 w-4" />
-                      <span className="text-[10px] font-bold">GOING UP</span>
+                      <span className="text-[10px] font-bold uppercase">Growth Active</span>
                     </div>
                   </div>
 
                   <div className="pt-4 space-y-2">
                     <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
-                      <span className="text-muted-foreground">System Usage</span>
-                      <span className="text-primary">{profile?.autoProfitEnabled ? '100%' : '0%'}</span>
+                      <span className="text-muted-foreground">System Status</span>
+                      <span className="text-primary">{profile?.autoProfitEnabled ? 'ACTIVE' : 'STATIC'}</span>
                     </div>
                     <div className="h-1 bg-muted rounded-none overflow-hidden">
                       <div 
@@ -228,10 +230,10 @@ export default function PerformancePage() {
                 <div className="mt-auto p-4 bg-primary/5 border border-primary/20 rounded-sm">
                   <div className="flex items-center gap-2 mb-2">
                     <Clock className="h-3 w-3 text-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-primary">Trading Info</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-primary">Info Node</span>
                   </div>
                   <p className="text-[8px] text-muted-foreground leading-relaxed uppercase tracking-tighter">
-                    Earnings are updated every 60 seconds. Our smart system handles the complex market moves for you.
+                    Account growth is handled through manual administrative profit cycles and bonus events.
                   </p>
                 </div>
               </CardContent>
@@ -244,7 +246,7 @@ export default function PerformancePage() {
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
                   <Target className="h-4 w-4 text-primary" /> Earnings History
                 </CardTitle>
-                <CardDescription className="text-[9px] uppercase mt-1">List of your recent earnings</CardDescription>
+                <CardDescription className="text-[9px] uppercase mt-1">List of verified account growth events</CardDescription>
               </div>
               <Badge variant="outline" className="text-[9px] border-primary/20 text-primary font-mono px-3">
                 {profitLogs.length} EVENTS
