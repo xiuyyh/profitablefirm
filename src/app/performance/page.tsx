@@ -155,7 +155,7 @@ export default function PerformancePage() {
             Growth Tracker
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <MetricCard 
               title="Total Profit" 
               value={`$${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
@@ -175,11 +175,6 @@ export default function PerformancePage() {
               value={`${roiPercentage.toFixed(2)}%`} 
               icon={BarChart3}
               trend={roiPercentage}
-            />
-            <MetricCard 
-              title="System Status" 
-              value={profile?.autoProfitEnabled ? "ACTIVE" : "PAUSED"} 
-              icon={ShieldCheck}
             />
           </div>
 
@@ -215,13 +210,13 @@ export default function PerformancePage() {
 
                   <div className="pt-4 space-y-2">
                     <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
-                      <span className="text-muted-foreground">System Status</span>
-                      <span className="text-primary">{profile?.autoProfitEnabled ? 'ACTIVE' : 'STATIC'}</span>
+                      <span className="text-muted-foreground">System Security</span>
+                      <span className="text-primary">ACTIVE</span>
                     </div>
                     <div className="h-1 bg-muted rounded-none overflow-hidden">
                       <div 
                         className="h-full bg-primary transition-all duration-1000 glow-primary" 
-                        style={{ width: profile?.autoProfitEnabled ? '100%' : '0%' }}
+                        style={{ width: '100%' }}
                       />
                     </div>
                   </div>

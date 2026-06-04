@@ -158,7 +158,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 mr-2">
               <div className={`h-2 w-2 rounded-full ${profile?.autoProfitEnabled ? 'bg-primary animate-pulse' : 'bg-muted'}`} />
               <span className={`text-[9px] font-bold uppercase tracking-widest ${profile?.autoProfitEnabled ? 'text-primary glow-text' : 'text-muted-foreground'}`}>
-                {profile?.autoProfitEnabled ? 'Trading Active' : 'Trading Paused'}
+                {profile?.autoProfitEnabled ? 'System Active' : 'System Static'}
               </span>
             </div>
             <div className="h-7 w-7 rounded-sm bg-primary/10 flex items-center justify-center text-[10px] font-bold border border-primary/30 text-primary">
@@ -178,7 +178,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <MetricCard 
               title="Total Balance" 
               value={`$${totalAccountEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
@@ -200,40 +200,10 @@ export default function Dashboard() {
               icon={TrendingUp}
               trendLabel="TOTAL GROWTH"
             />
-            <MetricCard 
-              title="System Status" 
-              value={profile?.autoProfitEnabled ? "TRADING ACTIVE" : "SYSTEM PAUSED"} 
-              icon={Zap}
-            />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <PerformanceChart currentTotal={settledEquity} />
-            </div>
-            <Card className="border border-border bg-card/40 shadow-none border-glow h-full">
-              <CardHeader className="pb-2 border-b border-border/10 bg-muted/10">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">System Status</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6 space-y-4">
-                <div className="p-4 bg-muted/20 border border-border/10 flex flex-col items-center justify-center gap-3 text-center">
-                  <Activity className={`h-8 w-8 ${profile?.autoProfitEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest">{profile?.autoProfitEnabled ? 'SYSTEM RUNNING' : 'SYSTEM PAUSED'}</p>
-                    <p className="text-[9px] text-muted-foreground uppercase mt-1">Smart systems are managing your account.</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                    <span>System Stability</span>
-                    <span>{profile?.autoProfitEnabled ? '99.9%' : '0%'}</span>
-                  </div>
-                  <div className="h-1 bg-muted rounded-none overflow-hidden">
-                    <div className="h-full bg-primary glow-primary" style={{ width: profile?.autoProfitEnabled ? '100%' : '0%' }} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="w-full">
+            <PerformanceChart currentTotal={settledEquity} />
           </div>
 
           <Card className="border border-border bg-card shadow-none border-glow">

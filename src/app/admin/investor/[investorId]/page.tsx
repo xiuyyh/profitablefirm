@@ -186,8 +186,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     });
 
     toast({
-      title: enabled ? "Trading Status: Active" : "Trading Status: Paused",
-      description: `User dashboard will now show ${enabled ? 'active trading' : 'static status'}.`,
+      title: enabled ? "System State: Active" : "System State: Static",
+      description: `User dashboard will now show ${enabled ? 'active motion' : 'static status'}.`,
     });
   };
 
@@ -397,7 +397,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             </Card>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <MetricCard 
               title="Total Balance" 
               value={`$${settledAUM.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
@@ -414,11 +414,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               trendLabel="NET GROWTH"
             />
             <MetricCard 
-              title="Trading Status" 
-              value={tradingEnabled ? "ACTIVE" : "PAUSED"} 
-              icon={Zap}
-            />
-            <MetricCard 
               title="Cash Balance" 
               value={`$${ledgerBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={History}
@@ -428,7 +423,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
           <Tabs defaultValue="ledger" className="space-y-6">
             <TabsList className="bg-muted/20 border-border p-1 flex-wrap h-auto">
               <TabsTrigger value="ledger" className="text-[10px] font-bold uppercase tracking-widest px-6">Input Profit / Balance</TabsTrigger>
-              <TabsTrigger value="status" className="text-[10px] font-bold uppercase tracking-widest px-6">Trading Status</TabsTrigger>
+              <TabsTrigger value="status" className="text-[10px] font-bold uppercase tracking-widest px-6">System Status</TabsTrigger>
               <TabsTrigger value="override" className="text-[10px] font-bold uppercase tracking-widest px-6">Manual Overrides</TabsTrigger>
               <TabsTrigger value="assets" className="text-[10px] font-bold uppercase tracking-widest px-6">View Assets</TabsTrigger>
             </TabsList>
@@ -496,7 +491,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                               </Badge>
                             </TableCell>
                             <TableCell className="text-[10px] text-muted-foreground truncate max-w-[150px]">{tx.description}</TableCell>
-                            <TableCell className={`text-right font-mono text-xs font-bold px-6 whitespace-nowrap ${tx.type === 'Withdrawal' ? 'text-red-500' : 'text-green-500'}`}>
+                            <TableCell className={`text-right font-mono text-xs font-bold px-6 whitespace-nowrap ${tx.type === 'Withdrawal' ? '-' : '+'}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}>
                               {tx.type === 'Withdrawal' ? '-' : '+'}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </TableCell>
                           </TableRow>
@@ -513,14 +508,14 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                 <Card className="w-full border-border bg-card shadow-none overflow-hidden">
                   <CardHeader className="bg-muted/10 border-b">
                     <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 truncate">
-                      <Zap className="h-4 w-4 text-primary shrink-0" /> Trading Protocol Status
+                      <Zap className="h-4 w-4 text-primary shrink-0" /> System Motion Status
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
                     <div className="flex items-center justify-between gap-4">
                       <div className="space-y-0.5 min-w-0">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest truncate block">Status Toggle</Label>
-                        <p className="text-[9px] text-muted-foreground uppercase truncate block">When Active, the balance wiggles slightly to simulate trading. When Paused, it remains static.</p>
+                        <Label className="text-[10px] font-bold uppercase tracking-widest truncate block">Wiggle Toggle</Label>
+                        <p className="text-[9px] text-muted-foreground uppercase truncate block">When Active, the balance wiggles slightly to simulate live markets. When Static, it remains still.</p>
                       </div>
                       <Switch 
                         checked={tradingEnabled} 
