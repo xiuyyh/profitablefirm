@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -9,7 +8,6 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { 
   CreditCard, 
   Wallet, 
-  ArrowRight, 
   ShieldCheck, 
   Terminal,
   Info,
@@ -43,11 +41,12 @@ export default function DepositPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleNextStep = () => {
-    if (!amount || Number(amount) <= 0) {
+    const numAmount = Number(amount);
+    if (!amount || numAmount < 100) {
       toast({
         variant: "destructive",
-        title: "Invalid Amount",
-        description: "Please enter a valid deposit amount.",
+        title: "Minimum Amount Required",
+        description: "The minimum amount you can add is $100.",
       });
       return;
     }
@@ -58,8 +57,8 @@ export default function DepositPage() {
     if (!senderAddress) {
       toast({
         variant: "destructive",
-        title: "Proof Required",
-        description: "Please provide your sender wallet address for verification.",
+        title: "Information Required",
+        description: "Please enter your wallet address so we can verify your payment.",
       });
       return;
     }
@@ -73,15 +72,15 @@ export default function DepositPage() {
       type: "Deposit",
       amount: Number(amount),
       currency: "USD",
-      description: "Initial Deposit Request",
+      description: "Money Added (Pending)",
       senderAddress: senderAddress,
       status: "Pending",
       createdAt: serverTimestamp(),
     });
 
     toast({
-      title: "Deposit Protocol Initialized",
-      description: "Your request is pending administrative verification.",
+      title: "Request Received",
+      description: "We are now checking your payment. This will update shortly.",
     });
 
     setTimeout(() => {
@@ -107,7 +106,7 @@ export default function DepositPage() {
             <div className="h-4 w-px bg-border mx-2" />
             <h1 className="text-xl font-bold flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-primary" />
-              Funding Terminal
+              Add Money
             </h1>
           </div>
         </header>
@@ -123,26 +122,26 @@ export default function DepositPage() {
               <Card className="border-border bg-card shadow-none border-glow animate-in fade-in slide-in-from-bottom-4">
                 <CardHeader className="bg-muted/10 border-b">
                   <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                    <BadgeDollarSign className="h-4 w-4" /> Initialize Capital
+                    <BadgeDollarSign className="h-4 w-4" /> Deposit Funds
                   </CardTitle>
-                  <CardDescription className="text-[10px] uppercase tracking-tighter">Enter the amount you wish to inject into your neural portfolio.</CardDescription>
+                  <CardDescription className="text-[10px] uppercase tracking-tighter">Enter the amount you want to add to your account (Min $100).</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Deposit Valuation ($)</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Amount ($)</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono text-sm">$</span>
                       <Input 
                         type="number" 
                         value={amount} 
                         onChange={(e) => setAmount(e.target.value)}
-                        placeholder="0.00"
+                        placeholder="100.00"
                         className="pl-8 bg-background border-border font-mono text-lg"
                       />
                     </div>
                   </div>
                   <Button onClick={handleNextStep} className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px] py-6">
-                    Proceed to Verification <ChevronRight className="ml-2 h-4 w-4" />
+                    Continue <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardContent>
               </Card>
@@ -150,32 +149,32 @@ export default function DepositPage() {
               <Card className="border-border bg-card shadow-none border-glow animate-in fade-in slide-in-from-right-4">
                 <CardHeader className="bg-muted/10 border-b">
                   <CardTitle className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4" /> Proof of Payment
+                    <ShieldCheck className="h-4 w-4" /> Confirm Payment
                   </CardTitle>
-                  <CardDescription className="text-[10px] uppercase tracking-tighter">Attach your sender wallet address to verify the transaction.</CardDescription>
+                  <CardDescription className="text-[10px] uppercase tracking-tighter">Send your payment and provide your address below.</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                   <Alert className="bg-primary/5 border-primary/20 text-primary rounded-none">
                     <Info className="h-4 w-4" />
-                    <AlertTitle className="text-[10px] font-black uppercase tracking-widest">Protocol Instructions</AlertTitle>
+                    <AlertTitle className="text-[10px] font-black uppercase tracking-widest">How to pay</AlertTitle>
                     <AlertDescription className="text-[9px] uppercase tracking-tighter mt-1">
-                      Send ${Number(amount).toLocaleString()} to the corporate institutional wallet. Once completed, enter your sender address below.
+                      Please send ${Number(amount).toLocaleString()} to the wallet address shown below. Once done, enter your address so we can find your payment.
                     </AlertDescription>
                   </Alert>
 
                   <div className="p-4 bg-muted/20 border border-border/50 rounded-sm space-y-2">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Institutional Wallet</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Company Wallet Address</p>
                     <p className="text-xs font-mono break-all text-foreground">0x71C7656EC7ab88b098defB751B7401B5f6d8976F</p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sender Wallet Address</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Your Wallet Address</Label>
                     <div className="relative">
                       <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input 
                         value={senderAddress} 
                         onChange={(e) => setSenderAddress(e.target.value)}
-                        placeholder="0x..."
+                        placeholder="Your 0x address"
                         className="pl-10 bg-background border-border font-mono text-xs"
                       />
                     </div>
@@ -184,7 +183,7 @@ export default function DepositPage() {
                   <div className="flex gap-3">
                     <Button variant="outline" onClick={() => setStep(1)} className="flex-1 border-border font-bold uppercase tracking-widest text-[10px]">Back</Button>
                     <Button onClick={handleSubmitDeposit} disabled={isSubmitting} className="flex-[2] bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px]">
-                      {isSubmitting ? "Processing..." : "I've Made Payment"}
+                      {isSubmitting ? "Sending..." : "I've Sent Payment"}
                     </Button>
                   </div>
                 </CardContent>
@@ -193,7 +192,7 @@ export default function DepositPage() {
 
             <div className="flex items-center justify-center gap-2 opacity-30">
               <ShieldCheck className="h-3 w-3" />
-              <span className="text-[8px] font-bold uppercase tracking-[0.3em]">End-to-End Neural Encryption Active</span>
+              <span className="text-[8px] font-bold uppercase tracking-[0.3em]">Secure Payment System Active</span>
             </div>
           </div>
         </main>
