@@ -43,7 +43,6 @@ const investorNav = [
 const adminNav = [
   { icon: ShieldAlert, label: "System Overview", href: "/admin" },
   { icon: Users, label: "Investor Profiles", href: "/admin" },
-  { icon: Globe, label: "Global Ledger", href: "/admin/ledger" },
   { icon: Activity, label: "Audit Logs", href: "#" },
 ];
 

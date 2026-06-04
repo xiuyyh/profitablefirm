@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -43,17 +42,6 @@ service cloud.firestore {
         allow create: if isOwner(investorId) || isAdmin();
         allow update, delete: if isAdmin();
       }
-    }
-
-    // --- COLLECTION GROUP RULES ---
-    // Required for the Global Ledger and administrative auditing tools.
-
-    match /{path=**}/transactions/{transactionId} {
-      allow read: if isAdmin();
-    }
-
-    match /{path=**}/investments/{investmentId} {
-      allow read: if isAdmin();
     }
   }
 }
