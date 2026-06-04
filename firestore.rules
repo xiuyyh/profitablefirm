@@ -2,11 +2,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * @description Simplified "Test Mode" rules for development.
-     * This allows any authenticated user to read and write to the database.
-     * This resolves the 'Missing or insufficient permissions' errors encountered 
-     * during the collectionGroup query for pending transactions.
+     * @description BROAD PERMISSIONS FOR DEVELOPMENT (TEST MODE)
+     * This allows any authenticated user to read/write any document.
+     * We also explicitly match the 'transactions' collection group to ensure 
+     * global auditing queries are permitted.
      */
+    
+    // 1. Match the 'transactions' collection group explicitly for global queries
+    match /{path=**}/transactions/{transactionId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // 2. Fallback for all other documents
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

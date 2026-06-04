@@ -53,7 +53,7 @@ export default function AdminControlPanel() {
 
   const { data: profile, isLoading: isProfileLoading } = useDoc(profileRef);
 
-  // Fetch all users
+  // Fetch all users - Only if authorized
   const investorsQuery = useMemoFirebase(() => {
     if (!firestore || !profile || profile.role !== "admin") return null;
     return collection(firestore, "investorProfiles");
@@ -64,10 +64,8 @@ export default function AdminControlPanel() {
   /**
    * Pending Transactions Global Auditor
    * Fetches all transactions with 'Pending' status across the entire database.
-   * REQUIRED: Composite index on 'transactions' collection group: status (ASC), createdAt (DESC)
    */
   const pendingTransactionsQuery = useMemoFirebase(() => {
-    // Only fire the query once we have confirmed the admin profile to avoid permission race conditions
     if (!firestore || !profile || profile.role !== "admin") return null;
     
     return query(
@@ -99,7 +97,6 @@ export default function AdminControlPanel() {
 
   const handleApprove = (request: any) => {
     if (!firestore) return;
-    // We use the investorId from the request to locate the subcollection document
     const docRef = doc(firestore, "investorProfiles", request.investorId, "transactions", request.id);
     updateDocumentNonBlocking(docRef, {
       status: "Completed",
