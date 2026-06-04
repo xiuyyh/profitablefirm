@@ -48,8 +48,11 @@ export default function PendingDepositsPage() {
 
   const { data: profile, isLoading: isProfileLoading } = useDoc(profileRef);
 
+  // Gate the query strictly behind admin verification
   const pendingDepositsQuery = useMemoFirebase(() => {
     if (!firestore || !profile || profile.role !== "admin") return null;
+    
+    // Explicitly using collectionGroup for 'transactions'
     return query(
       collectionGroup(firestore, "transactions"), 
       where("status", "==", "Pending"),
