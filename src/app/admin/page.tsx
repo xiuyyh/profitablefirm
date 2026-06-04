@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc, query, orderBy } from "firebase/firestore";
+import { collection, doc } from "firebase/firestore";
 import { MetricCard } from "@/components/dashboard/metric-card";
 
 export default function AdminControlPanel() {
@@ -48,10 +48,20 @@ export default function AdminControlPanel() {
 
   const investorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, "investorProfiles"), orderBy("createdAt", "desc"));
+    return collection(firestore, "investorProfiles");
   }, [firestore]);
 
-  const { data: investors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
+  const { data: rawInvestors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
+
+  // CLIENT-SIDE SORTING
+  const investors = useMemo(() => {
+    if (!rawInvestors) return null;
+    return [...rawInvestors].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [rawInvestors]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {

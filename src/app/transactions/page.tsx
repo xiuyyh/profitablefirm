@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 
 export default function TransactionsPage() {
   const { user } = useUser();
@@ -34,13 +34,20 @@ export default function TransactionsPage() {
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "investorProfiles", user.uid, "transactions"),
-      orderBy("createdAt", "desc")
-    );
+    return collection(firestore, "investorProfiles", user.uid, "transactions");
   }, [firestore, user?.uid]);
 
-  const { data: transactions, isLoading } = useCollection(transactionsQuery);
+  const { data: rawTransactions, isLoading } = useCollection(transactionsQuery);
+
+  // CLIENT-SIDE SORTING
+  const transactions = useMemo(() => {
+    if (!rawTransactions) return null;
+    return [...rawTransactions].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [rawTransactions]);
 
   return (
     <>

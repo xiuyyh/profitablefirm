@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
+import { collection, doc, serverTimestamp, query } from "firebase/firestore";
 import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function Dashboard() {
@@ -74,23 +74,36 @@ export default function Dashboard() {
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "investorProfiles", user.uid, "investments"),
-      orderBy("createdAt", "desc")
-    );
+    return collection(firestore, "investorProfiles", user.uid, "investments");
   }, [firestore, user?.uid]);
 
-  const { data: investments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
+  const { data: rawInvestments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "investorProfiles", user.uid, "transactions"),
-      orderBy("createdAt", "desc")
-    );
+    return collection(firestore, "investorProfiles", user.uid, "transactions");
   }, [firestore, user?.uid]);
 
-  const { data: transactions } = useCollection(transactionsQuery);
+  const { data: rawTransactions } = useCollection(transactionsQuery);
+
+  // CLIENT-SIDE SORTING (NO INDEXES REQUIRED)
+  const investments = useMemo(() => {
+    if (!rawInvestments) return null;
+    return [...rawInvestments].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [rawInvestments]);
+
+  const transactions = useMemo(() => {
+    if (!rawTransactions) return null;
+    return [...rawTransactions].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [rawTransactions]);
 
   // LEDGER ACCOUNTING
   const ledgerBalance = useMemo(() => {

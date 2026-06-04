@@ -36,7 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
-import { collection, doc, query, orderBy } from "firebase/firestore";
+import { collection, doc } from "firebase/firestore";
 
 export default function PerformancePage() {
   const { user, isUserLoading } = useUser();
@@ -52,41 +52,54 @@ export default function PerformancePage() {
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "investorProfiles", user.uid, "investments"),
-      orderBy("createdAt", "desc")
-    );
+    return collection(firestore, "investorProfiles", user.uid, "investments");
   }, [firestore, user?.uid]);
 
-  const { data: investments } = useCollection(investmentsQuery);
+  const { data: rawInvestments } = useCollection(investmentsQuery);
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "investorProfiles", user.uid, "transactions"),
-      orderBy("createdAt", "desc")
-    );
+    return collection(firestore, "investorProfiles", user.uid, "transactions");
   }, [firestore, user?.uid]);
 
   const { data: rawTransactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
 
+  // CLIENT-SIDE SORTING
+  const investments = useMemo(() => {
+    if (!rawInvestments) return null;
+    return [...rawInvestments].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [rawInvestments]);
+
+  const transactions = useMemo(() => {
+    if (!rawTransactions) return null;
+    return [...rawTransactions].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [rawTransactions]);
+
   // LEDGER ACCOUNTING (Same integrity logic as Dashboard)
   const ledgerBalance = useMemo(() => {
-    return rawTransactions?.reduce((sum, tx) => {
+    return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum + tx.amount;
     }, 0) || 0;
-  }, [rawTransactions]);
+  }, [transactions]);
 
   const netExternalCapital = useMemo(() => {
     const assetCostBasis = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
-    const netCashInjected = rawTransactions?.reduce((sum, tx) => {
+    const netCashInjected = transactions?.reduce((sum, tx) => {
       if (tx.type === 'Deposit') return sum + tx.amount;
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum;
     }, 0) || 0;
     return assetCostBasis + netCashInjected;
-  }, [investments, rawTransactions]);
+  }, [investments, transactions]);
 
   const settledEquity = useMemo(() => {
     const assetValue = investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
@@ -98,9 +111,9 @@ export default function PerformancePage() {
 
   // PROFIT-ONLY FILTER (For performance tracking)
   const profitLogs = useMemo(() => {
-    if (!rawTransactions) return [];
-    return rawTransactions.filter(tx => tx.type === 'Profit' || tx.type === 'Bonus');
-  }, [rawTransactions]);
+    if (!transactions) return [];
+    return transactions.filter(tx => tx.type === 'Profit' || tx.type === 'Bonus');
+  }, [transactions]);
 
   const last24hProfit = useMemo(() => {
     const oneDayAgo = (Date.now() / 1000) - (24 * 60 * 60);

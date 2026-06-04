@@ -32,7 +32,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { collectionGroup, doc, query, orderBy } from "firebase/firestore";
+import { collectionGroup, doc } from "firebase/firestore";
 
 export default function GlobalLedgerPage() {
   const { user, isUserLoading } = useUser();
@@ -48,10 +48,20 @@ export default function GlobalLedgerPage() {
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, "transactions"), orderBy("createdAt", "desc"));
+    return collectionGroup(firestore, "transactions");
   }, [firestore]);
 
-  const { data: transactions, isLoading } = useCollection(transactionsQuery);
+  const { data: rawTransactions, isLoading } = useCollection(transactionsQuery);
+
+  // CLIENT-SIDE SORTING (NO INDEXES REQUIRED)
+  const transactions = useMemo(() => {
+    if (!rawTransactions) return null;
+    return [...rawTransactions].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [rawTransactions]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
