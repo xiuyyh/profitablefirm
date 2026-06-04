@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -35,7 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, query, orderBy } from "firebase/firestore";
 
 export default function PerformancePage() {
   const { user, isUserLoading } = useUser();
@@ -51,14 +52,20 @@ export default function PerformancePage() {
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, "investorProfiles", user.uid, "investments");
+    return query(
+      collection(firestore, "investorProfiles", user.uid, "investments"),
+      orderBy("createdAt", "desc")
+    );
   }, [firestore, user?.uid]);
 
   const { data: investments } = useCollection(investmentsQuery);
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, "investorProfiles", user.uid, "transactions");
+    return query(
+      collection(firestore, "investorProfiles", user.uid, "transactions"),
+      orderBy("createdAt", "desc")
+    );
   }, [firestore, user?.uid]);
 
   const { data: rawTransactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
@@ -92,13 +99,7 @@ export default function PerformancePage() {
   // PROFIT-ONLY FILTER (For performance tracking)
   const profitLogs = useMemo(() => {
     if (!rawTransactions) return [];
-    return rawTransactions
-      .filter(tx => tx.type === 'Profit' || tx.type === 'Bonus')
-      .sort((a, b) => {
-        const timeA = a.createdAt?.seconds || 0;
-        const timeB = b.createdAt?.seconds || 0;
-        return timeB - timeA;
-      });
+    return rawTransactions.filter(tx => tx.type === 'Profit' || tx.type === 'Bonus');
   }, [rawTransactions]);
 
   const last24hProfit = useMemo(() => {

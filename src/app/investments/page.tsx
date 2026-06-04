@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/select";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { collection, doc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
 
 export default function InvestmentsPage() {
   const { user } = useUser();
@@ -75,7 +75,10 @@ export default function InvestmentsPage() {
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, "investorProfiles", user.uid, "investments");
+    return query(
+      collection(firestore, "investorProfiles", user.uid, "investments"),
+      orderBy("createdAt", "desc")
+    );
   }, [firestore, user?.uid]);
 
   const { data: investments, isLoading } = useCollection(investmentsQuery);

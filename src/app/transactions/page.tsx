@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -25,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection } from "firebase/firestore";
+import { collection, query, orderBy } from "firebase/firestore";
 
 export default function TransactionsPage() {
   const { user } = useUser();
@@ -33,21 +34,13 @@ export default function TransactionsPage() {
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // Removed orderBy to avoid indexing requirements
-    return collection(firestore, "investorProfiles", user.uid, "transactions");
+    return query(
+      collection(firestore, "investorProfiles", user.uid, "transactions"),
+      orderBy("createdAt", "desc")
+    );
   }, [firestore, user?.uid]);
 
-  const { data: rawTransactions, isLoading } = useCollection(transactionsQuery);
-
-  // Client-side sorting
-  const transactions = useMemo(() => {
-    if (!rawTransactions) return [];
-    return [...rawTransactions].sort((a, b) => {
-      const dateA = a.createdAt?.seconds || 0;
-      const dateB = b.createdAt?.seconds || 0;
-      return dateB - dateA;
-    });
-  }, [rawTransactions]);
+  const { data: transactions, isLoading } = useCollection(transactionsQuery);
 
   return (
     <>

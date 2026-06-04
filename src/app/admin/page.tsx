@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -30,7 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, query, orderBy } from "firebase/firestore";
 import { MetricCard } from "@/components/dashboard/metric-card";
 
 export default function AdminControlPanel() {
@@ -47,20 +48,10 @@ export default function AdminControlPanel() {
 
   const investorsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, "investorProfiles");
+    return query(collection(firestore, "investorProfiles"), orderBy("createdAt", "desc"));
   }, [firestore]);
 
-  const { data: rawInvestors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
-
-  // Client-side sorting
-  const investors = useMemo(() => {
-    if (!rawInvestors) return [];
-    return [...rawInvestors].sort((a, b) => {
-      const dateA = a.createdAt?.seconds || 0;
-      const dateB = b.createdAt?.seconds || 0;
-      return dateB - dateA;
-    });
-  }, [rawInvestors]);
+  const { data: investors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
 
   useEffect(() => {
     if (!isUserLoading && !user) {

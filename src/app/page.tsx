@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function Dashboard() {
@@ -74,14 +74,20 @@ export default function Dashboard() {
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, "investorProfiles", user.uid, "investments");
+    return query(
+      collection(firestore, "investorProfiles", user.uid, "investments"),
+      orderBy("createdAt", "desc")
+    );
   }, [firestore, user?.uid]);
 
   const { data: investments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, "investorProfiles", user.uid, "transactions");
+    return query(
+      collection(firestore, "investorProfiles", user.uid, "transactions"),
+      orderBy("createdAt", "desc")
+    );
   }, [firestore, user?.uid]);
 
   const { data: transactions } = useCollection(transactionsQuery);
@@ -195,15 +201,6 @@ export default function Dashboard() {
   const totalAccountEquity = settledEquity * marketNoise;
   const netPnL = profile?.manualPnlOverride ?? (settledEquity - netExternalCapital);
   const pnlPercentage = netExternalCapital > 0 ? (netPnL / netExternalCapital) * 100 : 0;
-
-  const sortedInvestments = useMemo(() => {
-    if (!investments) return [];
-    return [...investments].sort((a, b) => {
-      const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
-  }, [investments]);
 
   if (isUserLoading || !user) {
     return (
@@ -333,7 +330,7 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedInvestments.map((inv) => (
+                    {investments?.map((inv) => (
                       <TableRow key={inv.id} className="border-border hover:bg-primary/5 transition-colors">
                         <TableCell className="py-4 px-6">
                           <div className="flex flex-col">
@@ -351,6 +348,16 @@ export default function Dashboard() {
                         </TableCell>
                       </TableRow>
                     ))}
+                    {!investments?.length && (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center py-20">
+                          <div className="flex flex-col items-center gap-2 opacity-50">
+                            <Terminal className="h-6 w-6" />
+                            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Zero Holdings Active</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               )}

@@ -51,7 +51,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { collection, doc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, serverTimestamp, query, orderBy } from "firebase/firestore";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
@@ -131,35 +131,23 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
   const investmentsQuery = useMemoFirebase(() => {
     if (!firestore || !investorId) return null;
-    return collection(firestore, "investorProfiles", investorId, "investments");
+    return query(
+      collection(firestore, "investorProfiles", investorId, "investments"),
+      orderBy("createdAt", "desc")
+    );
   }, [firestore, investorId]);
 
-  const { data: rawInvestments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
+  const { data: investments, isLoading: isInvestmentsLoading } = useCollection(investmentsQuery);
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore || !investorId) return null;
-    return collection(firestore, "investorProfiles", investorId, "transactions");
+    return query(
+      collection(firestore, "investorProfiles", investorId, "transactions"),
+      orderBy("createdAt", "desc")
+    );
   }, [firestore, investorId]);
 
-  const { data: rawTransactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
-
-  const investments = useMemo(() => {
-    if (!rawInvestments) return [];
-    return [...rawInvestments].sort((a, b) => {
-      const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
-  }, [rawInvestments]);
-
-  const transactions = useMemo(() => {
-    if (!rawTransactions) return [];
-    return [...rawTransactions].sort((a, b) => {
-      const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
-  }, [rawTransactions]);
+  const { data: transactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
 
   useEffect(() => {
     if (!isUserLoading && !user) {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -31,7 +32,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { collectionGroup, doc } from "firebase/firestore";
+import { collectionGroup, doc, query, orderBy } from "firebase/firestore";
 
 export default function GlobalLedgerPage() {
   const { user, isUserLoading } = useUser();
@@ -47,21 +48,10 @@ export default function GlobalLedgerPage() {
 
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Removed orderBy to avoid Indexing requirement for collectionGroup
-    return collectionGroup(firestore, "transactions");
+    return query(collectionGroup(firestore, "transactions"), orderBy("createdAt", "desc"));
   }, [firestore]);
 
-  const { data: rawTransactions, isLoading } = useCollection(transactionsQuery);
-
-  // Client-side sorting
-  const transactions = useMemo(() => {
-    if (!rawTransactions) return [];
-    return [...rawTransactions].sort((a, b) => {
-      const dateA = a.createdAt?.seconds || 0;
-      const dateB = b.createdAt?.seconds || 0;
-      return dateB - dateA;
-    });
-  }, [rawTransactions]);
+  const { data: transactions, isLoading } = useCollection(transactionsQuery);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
