@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -58,20 +57,23 @@ export default function AdminControlPanel() {
   const investorsQuery = useMemoFirebase(() => {
     if (!firestore || !profile || profile.role !== "admin") return null;
     return collection(firestore, "investorProfiles");
-  }, [firestore, profile]);
+  }, [firestore, profile?.role]);
 
   const { data: rawInvestors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
 
   // Fetch all pending transactions across all users
   // Note: This query requires a composite index: transactions (Collection Group), status (ASC), createdAt (DESC)
   const pendingTransactionsQuery = useMemoFirebase(() => {
+    // CRITICAL: We gate this query strictly behind the confirmed 'admin' role state 
+    // to prevent unauthorized request attempts during profile hydration.
     if (!firestore || !profile || profile.role !== "admin") return null;
+    
     return query(
       collectionGroup(firestore, "transactions"), 
       where("status", "==", "Pending"),
       orderBy("createdAt", "desc")
     );
-  }, [firestore, profile]);
+  }, [firestore, profile?.id, profile?.role]);
 
   const { data: pendingRequests, isLoading: isPendingLoading } = useCollection(pendingTransactionsQuery);
 
