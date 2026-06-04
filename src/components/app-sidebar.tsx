@@ -1,22 +1,19 @@
+
 "use client";
 
 import { 
   LayoutDashboard, 
-  PieChart, 
   Briefcase, 
   TrendingUp, 
   Settings, 
   LogOut,
-  User,
-  ShieldCheck,
   ShieldAlert,
   History,
   Users,
   Activity,
-  FileText,
   Lock,
-  Globe,
-  CreditCard
+  CreditCard,
+  ArrowUpToLine
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +35,7 @@ const investorNav = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Briefcase, label: "Investments", href: "/investments" },
   { icon: CreditCard, label: "Add Money", href: "/deposit" },
+  { icon: ArrowUpToLine, label: "Withdraw Funds", href: "/withdraw" },
   { icon: History, label: "History", href: "/transactions" },
   { icon: TrendingUp, label: "Performance", href: "/performance" },
 ];
@@ -45,7 +43,6 @@ const investorNav = [
 const adminNav = [
   { icon: ShieldAlert, label: "Overview", href: "/admin" },
   { icon: Users, label: "User Accounts", href: "/admin" },
-  { icon: Activity, label: "System History", href: "#" },
 ];
 
 export function AppSidebar() {
@@ -143,11 +140,6 @@ export function AppSidebar() {
 
         <SidebarSeparator className="my-6 opacity-10" />
         
-        <div className="px-2 mb-2 group-data-[state=collapsed]:hidden">
-          <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-            Account
-          </span>
-        </div>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Settings" className="text-muted-foreground hover:text-foreground h-9">

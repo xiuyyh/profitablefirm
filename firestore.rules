@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -42,6 +43,13 @@ service cloud.firestore {
         allow create: if isOwner(investorId) || isAdmin();
         allow update, delete: if isAdmin();
       }
+    }
+
+    // --- COLLECTION GROUP RULES ---
+    
+    // Allow admins to query all transactions across all investors (for the Global Approval Hub)
+    match /{path=**}/transactions/{transactionId} {
+      allow list: if isAdmin();
     }
   }
 }
