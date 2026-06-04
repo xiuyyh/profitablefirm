@@ -1,11 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    /**
-     * @description TEST MODE PERMISSIONS
-     * Allowing all authenticated users full access to all documents and collection groups.
-     * This is intended to resolve permission errors during the index propagation and development phase.
-     */
+    
+    // Helper to check if a user is an administrator
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/investorProfiles/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Support for Collection Group queries on 'transactions'
+    match /{path=**}/transactions/{transactionId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Default permission: All authenticated users can read/write everything
+    // This serves as the 'Test Mode' foundation while ensuring auth is required.
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

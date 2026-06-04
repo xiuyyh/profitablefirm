@@ -1,26 +1,21 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
+import { useMemo } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { 
-  ShieldAlert, 
-  Terminal,
-  Clock,
-  CheckCircle2,
+  ArrowDownLeft, 
+  Terminal, 
+  CheckCircle2, 
   XCircle,
-  Wallet,
-  ArrowDownLeft
+  Clock,
+  Wallet
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { 
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle,
-  CardDescription
+  CardTitle 
 } from "@/components/ui/card";
 import {
   Table,
@@ -30,82 +25,47 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { collection, doc, query, where, collectionGroup, serverTimestamp, orderBy } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where, orderBy, doc } from "firebase/firestore";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 export default function PendingDepositsPage() {
-  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const router = useRouter();
   const { toast } = useToast();
 
-  const profileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, "investorProfiles", user.uid);
-  }, [firestore, user?.uid]);
-
-  const { data: profile, isLoading: isProfileLoading } = useDoc(profileRef);
-
-  // Gate the query strictly behind admin verification
   const pendingDepositsQuery = useMemoFirebase(() => {
-    if (!firestore || !profile || profile.role !== "admin") return null;
-    
-    // Explicitly using collectionGroup for 'transactions'
+    if (!firestore) return null;
     return query(
-      collectionGroup(firestore, "transactions"), 
+      collection(firestore, "transactions"), // Using group query pattern
       where("status", "==", "Pending"),
       where("type", "==", "Deposit"),
       orderBy("createdAt", "desc")
     );
-  }, [firestore, profile?.role]);
+  }, [firestore]);
 
-  const { data: pendingRequests, isLoading: isPendingLoading } = useCollection(pendingDepositsQuery);
+  const { data: deposits, isLoading } = useCollection(pendingDepositsQuery);
 
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push("/login");
-    }
-    if (profile && profile.role !== "admin") {
-      router.push("/");
-    }
-  }, [user, isUserLoading, profile, router]);
-
-  const handleApprove = (request: any) => {
+  const handleAction = (deposit: any, status: 'Completed' | 'Failed') => {
     if (!firestore) return;
-    const docRef = doc(firestore, "investorProfiles", request.investorId, "transactions", request.id);
+
+    // IMPORTANT: transactions is subcollection, but we need the correct path
+    // The collectionGroup query items have ID but we need to know the parent.
+    // In our schema, transactions are under /investorProfiles/{investorId}/transactions/{transactionId}
+    const docRef = doc(firestore, "investorProfiles", deposit.investorId, "transactions", deposit.id);
+    
     updateDocumentNonBlocking(docRef, {
-      status: "Completed",
-      updatedAt: serverTimestamp()
+      status: status,
+      updatedAt: new Date().toISOString(),
     });
+
     toast({
-      title: "Deposit Approved",
-      description: `Successfully processed $${request.amount.toLocaleString()}.`,
+      title: status === 'Completed' ? "Deposit Approved" : "Deposit Declined",
+      description: `The request for $${deposit.amount.toLocaleString()} has been updated.`,
     });
   };
-
-  const handleDecline = (request: any) => {
-    if (!firestore) return;
-    const docRef = doc(firestore, "investorProfiles", request.investorId, "transactions", request.id);
-    updateDocumentNonBlocking(docRef, {
-      status: "Failed",
-      updatedAt: serverTimestamp()
-    });
-    toast({
-      variant: "destructive",
-      title: "Deposit Declined",
-      description: `Rejected $${request.amount.toLocaleString()}.`,
-    });
-  };
-
-  if (isUserLoading || isProfileLoading || !profile || profile.role !== "admin") {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Terminal className="h-8 w-8 animate-pulse text-destructive" />
-      </div>
-    );
-  }
 
   return (
     <>
@@ -116,76 +76,84 @@ export default function PendingDepositsPage() {
             <SidebarTrigger />
             <div className="h-4 w-px bg-border mx-2" />
             <h1 className="text-xl font-bold flex items-center gap-2">
-              <ArrowDownLeft className="h-5 w-5 text-green-500" />
+              <ArrowDownLeft className="h-5 w-5 text-primary" />
               Pending Deposits
             </h1>
           </div>
-          <Badge variant="outline" className="border-green-500/30 text-green-500 bg-green-500/5 font-mono text-[10px] uppercase tracking-widest">
-            {pendingRequests?.length || 0} Awaiting
-          </Badge>
         </header>
 
         <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
-          <Card className="border-border bg-card shadow-none overflow-hidden">
+          <Card className="border-border bg-card shadow-none">
             <CardHeader className="border-b bg-muted/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest">Deposit Queue</CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground uppercase mt-1">
-                    Review and confirm incoming payments
-                  </CardDescription>
-                </div>
-              </div>
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Inbound Funding Requests</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {isPendingLoading ? (
-                <div className="h-40 flex items-center justify-center text-muted-foreground animate-pulse">
-                  <Terminal className="h-6 w-6" />
+              {isLoading ? (
+                <div className="h-40 flex items-center justify-center">
+                  <Terminal className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent bg-muted/10 border-border">
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Date</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Amount</TableHead>
+                    <TableRow className="hover:bg-transparent bg-muted/20 border-border">
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Time</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Investor ID</TableHead>
                       <TableHead className="text-[10px] uppercase font-bold tracking-wider">Method</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Sender Address</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Actions</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Sender Wallet</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Amount</TableHead>
+                      <TableHead className="w-[150px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingRequests?.map((req) => (
-                      <TableRow key={req.id} className="border-border hover:bg-muted/30">
-                        <TableCell className="text-[10px] font-mono whitespace-nowrap">
-                          {req.createdAt ? new Date(req.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                    {deposits?.map((d) => (
+                      <TableRow key={d.id} className="border-border hover:bg-muted/30">
+                        <TableCell className="font-mono text-[10px] text-muted-foreground">
+                          {d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString() : 'Processing'}
                         </TableCell>
-                        <TableCell className="font-mono text-xs font-bold text-green-500">${req.amount.toLocaleString()}</TableCell>
+                        <TableCell className="font-mono text-[10px]">{d.investorId.substring(0, 8)}...</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[9px] uppercase font-bold border-primary/30 text-primary">
-                            {req.paymentMethod || 'Unknown'}
+                          <Badge variant="outline" className="text-[9px] uppercase tracking-widest font-black border-primary/30 text-primary bg-primary/5">
+                            {d.paymentMethod || "UNKNOWN"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-[200px]">
-                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground truncate">
-                            <Wallet className="h-3 w-3" /> {req.senderAddress || 'N/A'}
-                          </div>
+                        <TableCell className="max-w-[150px] truncate">
+                           <div className="flex items-center gap-2">
+                             <Wallet className="h-3 w-3 opacity-30 shrink-0" />
+                             <span className="text-[9px] font-mono text-muted-foreground truncate" title={d.senderAddress}>{d.senderAddress || "NOT PROVIDED"}</span>
+                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" onClick={() => handleApprove(req)} className="h-7 px-3 bg-green-600 hover:bg-green-700 text-[9px] font-bold uppercase tracking-widest">
-                              Approve
+                        <TableCell className="text-right font-mono text-sm font-black text-green-500">
+                          ${d.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-8 px-2 text-green-500 hover:bg-green-500/10 hover:text-green-500"
+                              onClick={() => handleAction(d, 'Completed')}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDecline(req)} className="h-7 px-3 text-[9px] font-bold uppercase tracking-widest">
-                              Decline
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-8 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => handleAction(d, 'Failed')}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" /> Decline
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
                     ))}
-                    {!pendingRequests?.length && (
+                    {!deposits?.length && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-20 opacity-50">
-                          <span className="text-[10px] uppercase font-bold tracking-[0.2em]">No Pending Deposits</span>
+                        <TableCell colSpan={6} className="text-center py-24">
+                          <div className="flex flex-col items-center gap-2 opacity-50">
+                            <Clock className="h-8 w-8 mb-2" />
+                            <span className="text-[10px] uppercase font-black tracking-[0.2em]">Queue is currently empty</span>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}

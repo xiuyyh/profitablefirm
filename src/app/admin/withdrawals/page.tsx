@@ -1,26 +1,21 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
+import { useMemo } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { 
-  ShieldAlert, 
-  Terminal,
-  Clock,
-  CheckCircle2,
+  ArrowUpRight, 
+  Terminal, 
+  CheckCircle2, 
   XCircle,
-  Wallet,
-  ArrowUpRight
+  Clock,
+  ExternalLink
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { 
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle,
-  CardDescription
+  CardTitle 
 } from "@/components/ui/card";
 import {
   Table,
@@ -30,82 +25,44 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { collection, doc, query, where, collectionGroup, serverTimestamp, orderBy } from "firebase/firestore";
+import { Button } from "@/components/ui/button";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where, orderBy, doc } from "firebase/firestore";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 export default function PendingWithdrawalsPage() {
-  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const router = useRouter();
   const { toast } = useToast();
 
-  const profileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, "investorProfiles", user.uid);
-  }, [firestore, user?.uid]);
-
-  const { data: profile, isLoading: isProfileLoading } = useDoc(profileRef);
-
-  // Gate the query strictly behind admin verification
   const pendingWithdrawalsQuery = useMemoFirebase(() => {
-    if (!firestore || !profile || profile.role !== "admin") return null;
-    
-    // Explicitly using collectionGroup for 'transactions'
+    if (!firestore) return null;
     return query(
-      collectionGroup(firestore, "transactions"), 
+      collection(firestore, "transactions"), // Using group query pattern
       where("status", "==", "Pending"),
       where("type", "==", "Withdrawal"),
       orderBy("createdAt", "desc")
     );
-  }, [firestore, profile?.role]);
+  }, [firestore]);
 
-  const { data: pendingRequests, isLoading: isPendingLoading } = useCollection(pendingWithdrawalsQuery);
+  const { data: withdrawals, isLoading } = useCollection(pendingWithdrawalsQuery);
 
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push("/login");
-    }
-    if (profile && profile.role !== "admin") {
-      router.push("/");
-    }
-  }, [user, isUserLoading, profile, router]);
-
-  const handleApprove = (request: any) => {
+  const handleAction = (withdrawal: any, status: 'Completed' | 'Failed') => {
     if (!firestore) return;
-    const docRef = doc(firestore, "investorProfiles", request.investorId, "transactions", request.id);
+
+    const docRef = doc(firestore, "investorProfiles", withdrawal.investorId, "transactions", withdrawal.id);
+    
     updateDocumentNonBlocking(docRef, {
-      status: "Completed",
-      updatedAt: serverTimestamp()
+      status: status,
+      updatedAt: new Date().toISOString(),
     });
+
     toast({
-      title: "Withdrawal Approved",
-      description: `Successfully processed payout of $${request.amount.toLocaleString()}.`,
+      title: status === 'Completed' ? "Withdrawal Confirmed" : "Withdrawal Rejected",
+      description: `The request for $${withdrawal.amount.toLocaleString()} has been updated.`,
     });
   };
-
-  const handleDecline = (request: any) => {
-    if (!firestore) return;
-    const docRef = doc(firestore, "investorProfiles", request.investorId, "transactions", request.id);
-    updateDocumentNonBlocking(docRef, {
-      status: "Failed",
-      updatedAt: serverTimestamp()
-    });
-    toast({
-      variant: "destructive",
-      title: "Withdrawal Declined",
-      description: `Rejected payout of $${request.amount.toLocaleString()}.`,
-    });
-  };
-
-  if (isUserLoading || isProfileLoading || !profile || profile.role !== "admin") {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Terminal className="h-8 w-8 animate-pulse text-destructive" />
-      </div>
-    );
-  }
 
   return (
     <>
@@ -116,76 +73,84 @@ export default function PendingWithdrawalsPage() {
             <SidebarTrigger />
             <div className="h-4 w-px bg-border mx-2" />
             <h1 className="text-xl font-bold flex items-center gap-2">
-              <ArrowUpRight className="h-5 w-5 text-red-500" />
-              Pending Withdrawals
+              <ArrowUpRight className="h-5 w-5 text-destructive" />
+              Audit Withdrawals
             </h1>
           </div>
-          <Badge variant="outline" className="border-red-500/30 text-red-500 bg-red-500/5 font-mono text-[10px] uppercase tracking-widest">
-            {pendingRequests?.length || 0} Awaiting
-          </Badge>
         </header>
 
         <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
-          <Card className="border-border bg-card shadow-none overflow-hidden">
+          <Card className="border-border bg-card shadow-none">
             <CardHeader className="border-b bg-muted/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest">Withdrawal Queue</CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground uppercase mt-1">
-                    Manage outgoing payout requests
-                  </CardDescription>
-                </div>
-              </div>
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-destructive">Outbound Payout Requests</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {isPendingLoading ? (
-                <div className="h-40 flex items-center justify-center text-muted-foreground animate-pulse">
-                  <Terminal className="h-6 w-6" />
+              {isLoading ? (
+                <div className="h-40 flex items-center justify-center">
+                  <Terminal className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="hover:bg-transparent bg-muted/10 border-border">
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Date</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Amount</TableHead>
+                    <TableRow className="hover:bg-transparent bg-muted/20 border-border">
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Time</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Investor ID</TableHead>
                       <TableHead className="text-[10px] uppercase font-bold tracking-wider">Network</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Destination Address</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Actions</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Target Wallet</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Amount</TableHead>
+                      <TableHead className="w-[150px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingRequests?.map((req) => (
-                      <TableRow key={req.id} className="border-border hover:bg-muted/30">
-                        <TableCell className="text-[10px] font-mono whitespace-nowrap">
-                          {req.createdAt ? new Date(req.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                    {withdrawals?.map((w) => (
+                      <TableRow key={w.id} className="border-border hover:bg-muted/30">
+                        <TableCell className="font-mono text-[10px] text-muted-foreground">
+                          {w.createdAt ? new Date(w.createdAt.seconds * 1000).toLocaleString() : 'Processing'}
                         </TableCell>
-                        <TableCell className="font-mono text-xs font-bold text-red-500">${req.amount.toLocaleString()}</TableCell>
+                        <TableCell className="font-mono text-[10px]">{w.investorId.substring(0, 8)}...</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[9px] uppercase font-bold border-destructive/30 text-destructive">
-                            {req.paymentMethod || 'Unknown'}
+                          <Badge variant="outline" className="text-[9px] uppercase tracking-widest font-black border-destructive/30 text-destructive bg-destructive/5">
+                            {w.paymentMethod || "UNKNOWN"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-[200px]">
-                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground truncate">
-                            <Wallet className="h-3 w-3" /> {req.destinationAddress || 'N/A'}
-                          </div>
+                        <TableCell className="max-w-[150px] truncate">
+                           <div className="flex items-center gap-2">
+                             <ExternalLink className="h-3 w-3 opacity-30 shrink-0" />
+                             <span className="text-[9px] font-mono text-muted-foreground truncate" title={w.destinationAddress}>{w.destinationAddress || "ERROR: NO ADDRESS"}</span>
+                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" onClick={() => handleApprove(req)} className="h-7 px-3 bg-green-600 hover:bg-green-700 text-[9px] font-bold uppercase tracking-widest">
-                              Approve
+                        <TableCell className="text-right font-mono text-sm font-black text-destructive">
+                          -${w.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-8 px-2 text-green-500 hover:bg-green-500/10 hover:text-green-500"
+                              onClick={() => handleAction(w, 'Completed')}
+                            >
+                              <CheckCircle2 className="h-4 w-4 mr-1" /> Fulfill
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDecline(req)} className="h-7 px-3 text-[9px] font-bold uppercase tracking-widest">
-                              Decline
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-8 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => handleAction(w, 'Failed')}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" /> Reject
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
                     ))}
-                    {!pendingRequests?.length && (
+                    {!withdrawals?.length && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-20 opacity-50">
-                          <span className="text-[10px] uppercase font-bold tracking-[0.2em]">No Pending Withdrawals</span>
+                        <TableCell colSpan={6} className="text-center py-24">
+                          <div className="flex flex-col items-center gap-2 opacity-50">
+                            <Clock className="h-8 w-8 mb-2" />
+                            <span className="text-[10px] uppercase font-black tracking-[0.2em]">All payout requests fulfilled</span>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}

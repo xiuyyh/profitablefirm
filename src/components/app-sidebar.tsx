@@ -42,7 +42,7 @@ const investorNav = [
 
 const adminNav = [
   { icon: ShieldAlert, label: "Overview", href: "/admin" },
-  { icon: Users, label: "User Accounts", href: "/admin" },
+  { icon: Users, label: "User Accounts", href: "/admin/users" },
   { icon: ArrowDownLeft, label: "Pending Deposits", href: "/admin/deposits" },
   { icon: ArrowUpRight, label: "Pending Withdrawals", href: "/admin/withdrawals" },
 ];
