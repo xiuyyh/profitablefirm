@@ -1,4 +1,3 @@
-
 "use client";
 
 import { 
@@ -10,10 +9,11 @@ import {
   ShieldAlert,
   History,
   Users,
-  Activity,
   Lock,
   CreditCard,
-  ArrowUpToLine
+  ArrowUpToLine,
+  ArrowDownLeft,
+  ArrowUpRight
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,6 +43,8 @@ const investorNav = [
 const adminNav = [
   { icon: ShieldAlert, label: "Overview", href: "/admin" },
   { icon: Users, label: "User Accounts", href: "/admin" },
+  { icon: ArrowDownLeft, label: "Pending Deposits", href: "/admin/deposits" },
+  { icon: ArrowUpRight, label: "Pending Withdrawals", href: "/admin/withdrawals" },
 ];
 
 export function AppSidebar() {
