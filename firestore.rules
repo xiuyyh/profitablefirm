@@ -15,9 +15,12 @@ service cloud.firestore {
 
     /**
      * @description Checks if the authenticated user has administrative privileges.
+     * Robust check that ensures the document exists before checking roles.
      */
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/investorProfiles/$(request.auth.uid)).data.role == 'admin';
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/investorProfiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/investorProfiles/$(request.auth.uid)).data.role == 'admin';
     }
 
     // --- COLLECTION RULES ---
@@ -37,10 +40,20 @@ service cloud.firestore {
 
       match /transactions/{transactionId} {
         allow get, list: if isOwner(investorId) || isAdmin();
-        // Allow owner to create transactions for the simulated yield engine
         allow create: if isOwner(investorId) || isAdmin();
         allow update, delete: if isAdmin();
       }
+    }
+
+    // --- COLLECTION GROUP RULES ---
+    // Required for the Global Ledger and administrative auditing tools.
+
+    match /{path=**}/transactions/{transactionId} {
+      allow read: if isAdmin();
+    }
+
+    match /{path=**}/investments/{investmentId} {
+      allow read: if isAdmin();
     }
   }
 }

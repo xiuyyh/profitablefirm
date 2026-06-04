@@ -48,17 +48,18 @@ export default function GlobalLedgerPage() {
     return doc(firestore, "investorProfiles", user.uid);
   }, [firestore, user?.uid]);
 
-  const { data: profile } = useDoc(profileRef);
+  const { data: profile, isLoading: isProfileLoading } = useDoc(profileRef);
 
-  // Use collectionGroup to aggregate all transactions from all investors
+  // GATED COLLECTION GROUP: Only fire if admin status is confirmed.
+  // This resolves the root "list" permission error by ensuring the rules engine
+  // validates against an admin profile.
   const transactionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !profile || profile.role !== "admin") return null;
     return collectionGroup(firestore, "transactions");
-  }, [firestore]);
+  }, [firestore, profile]);
 
   const { data: rawTransactions, isLoading } = useCollection(transactionsQuery);
 
-  // Optimized client-side processing to bypass index barriers
   const transactions = useMemo(() => {
     if (!rawTransactions) return [];
     
@@ -88,7 +89,7 @@ export default function GlobalLedgerPage() {
     }
   }, [user, isUserLoading, profile, router]);
 
-  if (isUserLoading || !profile || profile.role !== "admin") {
+  if (isUserLoading || isProfileLoading || !profile || profile.role !== "admin") {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <Terminal className="h-8 w-8 animate-pulse text-primary" />

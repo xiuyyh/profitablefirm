@@ -46,14 +46,15 @@ export default function AdminControlPanel() {
 
   const { data: profile, isLoading: isProfileLoading } = useDoc(profileRef);
 
+  // GATED QUERY: Only fetch investors if the current user is confirmed as an admin.
+  // This prevents permission errors during initial load.
   const investorsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !profile || profile.role !== "admin") return null;
     return collection(firestore, "investorProfiles");
-  }, [firestore]);
+  }, [firestore, profile]);
 
   const { data: rawInvestors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
 
-  // CLIENT-SIDE SORTING
   const investors = useMemo(() => {
     if (!rawInvestors) return null;
     return [...rawInvestors].sort((a, b) => {
