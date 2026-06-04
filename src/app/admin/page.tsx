@@ -61,11 +61,13 @@ export default function AdminControlPanel() {
 
   const { data: rawInvestors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
 
-  // Fetch all pending transactions across all users
-  // Note: This query requires a composite index: transactions (Collection Group), status (ASC), createdAt (DESC)
+  /**
+   * Pending Transactions Global Auditor
+   * Fetches all transactions with 'Pending' status across the entire database.
+   * REQUIRED: Composite index on 'transactions' collection group: status (ASC), createdAt (DESC)
+   */
   const pendingTransactionsQuery = useMemoFirebase(() => {
-    // CRITICAL: We gate this query strictly behind the confirmed 'admin' role state 
-    // to prevent unauthorized request attempts during profile hydration.
+    // Only fire the query once we have confirmed the admin profile to avoid permission race conditions
     if (!firestore || !profile || profile.role !== "admin") return null;
     
     return query(
@@ -73,7 +75,7 @@ export default function AdminControlPanel() {
       where("status", "==", "Pending"),
       orderBy("createdAt", "desc")
     );
-  }, [firestore, profile?.id, profile?.role]);
+  }, [firestore, profile?.role]);
 
   const { data: pendingRequests, isLoading: isPendingLoading } = useCollection(pendingTransactionsQuery);
 
@@ -97,6 +99,7 @@ export default function AdminControlPanel() {
 
   const handleApprove = (request: any) => {
     if (!firestore) return;
+    // We use the investorId from the request to locate the subcollection document
     const docRef = doc(firestore, "investorProfiles", request.investorId, "transactions", request.id);
     updateDocumentNonBlocking(docRef, {
       status: "Completed",
@@ -104,7 +107,7 @@ export default function AdminControlPanel() {
     });
     toast({
       title: "Request Approved",
-      description: `Successfully processed ${request.type} of $${request.amount}.`,
+      description: `Successfully processed ${request.type} of $${request.amount.toLocaleString()}.`,
     });
   };
 
@@ -118,7 +121,7 @@ export default function AdminControlPanel() {
     toast({
       variant: "destructive",
       title: "Request Declined",
-      description: `Rejected ${request.type} of $${request.amount}.`,
+      description: `Rejected ${request.type} of $${request.amount.toLocaleString()}.`,
     });
   };
 
