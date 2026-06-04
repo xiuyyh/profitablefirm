@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, use, useState, useMemo } from "react";
@@ -343,26 +342,26 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               variant="ghost" 
               size="sm" 
               onClick={() => router.push("/admin")}
-              className="h-8 px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground"
+              className="h-8 px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground shrink-0"
             >
               <ArrowLeft className="h-3 w-3 mr-1" /> Exit Audit
             </Button>
           </div>
-          <div className="flex items-center gap-4">
-            <Badge variant="outline" className="border-destructive/30 text-destructive bg-destructive/5 font-mono text-[10px] uppercase tracking-widest">
+          <div className="flex items-center gap-4 min-w-0">
+            <Badge variant="outline" className="border-destructive/30 text-destructive bg-destructive/5 font-mono text-[10px] uppercase tracking-widest truncate">
               ID: {investorId.substring(0, 12)}...
             </Badge>
           </div>
         </header>
 
-        <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
-          <div className="flex items-center gap-4 border-b border-border pb-6">
-            <div className="h-16 w-16 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-2xl font-bold text-primary">
+        <main className="p-6 md:p-8 space-y-6 w-full max-w-none overflow-x-hidden">
+          <div className="flex items-center gap-4 border-b border-border pb-6 min-w-0">
+            <div className="h-16 w-16 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-2xl font-bold text-primary shrink-0">
               {investorProfile.firstName?.substring(0, 1).toUpperCase()}
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">{investorProfile.firstName} {investorProfile.lastName}</h1>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground truncate">{investorProfile.firstName} {investorProfile.lastName}</h1>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1 truncate">
                 {investorProfile.email}
               </div>
             </div>
@@ -397,7 +396,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
           </div>
 
           <Tabs defaultValue="yield" className="space-y-6">
-            <TabsList className="bg-muted/20 border-border p-1">
+            <TabsList className="bg-muted/20 border-border p-1 flex-wrap h-auto">
               <TabsTrigger value="yield" className="text-[10px] font-bold uppercase tracking-widest px-6">Yield Config</TabsTrigger>
               <TabsTrigger value="ledger" className="text-[10px] font-bold uppercase tracking-widest px-6">Ledger Adjustments</TabsTrigger>
               <TabsTrigger value="override" className="text-[10px] font-bold uppercase tracking-widest px-6">System Override</TabsTrigger>
@@ -406,21 +405,22 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
             <TabsContent value="yield" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="w-full border-border bg-card shadow-none">
+                <Card className="w-full border-border bg-card shadow-none overflow-hidden">
                   <CardHeader className="bg-muted/10 border-b">
-                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-primary" /> Algorithmic Yield Protocol
+                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 truncate">
+                      <Zap className="h-4 w-4 text-primary shrink-0" /> Algorithmic Yield Protocol
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest">Active Status</Label>
-                        <p className="text-[9px] text-muted-foreground uppercase">Toggle trading & market movement</p>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="space-y-0.5 min-w-0">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest truncate block">Active Status</Label>
+                        <p className="text-[9px] text-muted-foreground uppercase truncate block">Toggle trading & market movement</p>
                       </div>
                       <Switch 
                         checked={yieldConfig.enabled} 
                         onCheckedChange={(checked) => setYieldConfig({...yieldConfig, enabled: checked})} 
+                        className="shrink-0"
                       />
                     </div>
                     
@@ -440,14 +440,14 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                   </CardContent>
                 </Card>
 
-                <Card className="w-full border-border bg-card shadow-none border-dashed border-primary/30">
+                <Card className="w-full border-border bg-card shadow-none border-dashed border-primary/30 overflow-hidden">
                   <CardHeader className="bg-primary/5 border-b border-primary/10">
-                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-primary">
-                      <Database className="h-4 w-4" /> Neural Asset Provisioning
+                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-primary truncate">
+                      <Database className="h-4 w-4 shrink-0" /> Neural Asset Provisioning
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-4">
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Generate standard high-fidelity holdings based on the selected classification.</p>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-relaxed">Generate standard high-fidelity holdings based on the selected classification.</p>
                     <Button onClick={handleProvisionAssets} disabled={isProvisioning} variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 font-bold uppercase tracking-widest text-[10px]">
                       {isProvisioning ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Database className="h-3 w-3 mr-2" />}
                       Provision Initial Holdings
@@ -459,10 +459,10 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
             <TabsContent value="ledger" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-1 border-border bg-card shadow-none">
+                <Card className="lg:col-span-1 border-border bg-card shadow-none overflow-hidden">
                   <CardHeader className="bg-muted/10 border-b">
-                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                      <PlusCircle className="h-4 w-4 text-primary" /> Manual Entry
+                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 truncate">
+                      <PlusCircle className="h-4 w-4 text-primary shrink-0" /> Manual Entry
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-4">
@@ -489,32 +489,32 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                   </CardContent>
                 </Card>
 
-                <Card className="lg:col-span-2 border-border bg-card shadow-none">
+                <Card className="lg:col-span-2 border-border bg-card shadow-none overflow-hidden">
                   <CardHeader className="bg-muted/10 border-b">
-                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                      <History className="h-4 w-4" /> Activity Logs
+                    <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 truncate">
+                      <History className="h-4 w-4 shrink-0" /> Activity Logs
                     </div>
                   </CardHeader>
-                  <CardContent className="p-0">
+                  <CardContent className="p-0 overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent bg-muted/20 border-border">
-                          <TableHead className="text-[10px] uppercase font-bold px-6">Timestamp</TableHead>
-                          <TableHead className="text-[10px] uppercase font-bold">Protocol</TableHead>
-                          <TableHead className="text-right text-[10px] uppercase font-bold px-6">Value</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Timestamp</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold h-10 whitespace-nowrap">Protocol</TableHead>
+                          <TableHead className="text-right text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Value</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {transactions?.map((tx) => (
                           <TableRow key={tx.id} className="border-border hover:bg-muted/30">
-                            <TableCell className="text-[10px] font-mono px-6">{tx.createdAt ? new Date(tx.createdAt.seconds * 1000).toLocaleDateString() : 'Pending'}</TableCell>
+                            <TableCell className="text-[10px] font-mono px-6 whitespace-nowrap">{tx.createdAt ? new Date(tx.createdAt.seconds * 1000).toLocaleDateString() : 'Pending'}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={`text-[9px] uppercase font-bold px-1.5 py-0 ${tx.type === 'Withdrawal' ? 'border-red-500/30 text-red-500' : 'border-green-500/30 text-green-500'}`}>
+                              <Badge variant="outline" className={`text-[9px] uppercase font-bold px-1.5 py-0 whitespace-nowrap ${tx.type === 'Withdrawal' ? 'border-red-500/30 text-red-500' : 'border-green-500/30 text-green-500'}`}>
                                 {tx.type}
                               </Badge>
                             </TableCell>
-                            <TableCell className={`text-right font-mono text-xs font-bold px-6 ${tx.type === 'Withdrawal' ? 'text-red-500' : 'text-green-500'}`}>
-                              {tx.type === 'Withdrawal' ? '-' : '+'}${tx.amount.toLocaleString()}
+                            <TableCell className={`text-right font-mono text-xs font-bold px-6 whitespace-nowrap ${tx.type === 'Withdrawal' ? 'text-red-500' : 'text-green-500'}`}>
+                              {tx.type === 'Withdrawal' ? '-' : '+'}${tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -526,10 +526,10 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             </TabsContent>
 
             <TabsContent value="override" className="space-y-6">
-              <Card className="border-destructive/30 bg-card shadow-none border-dashed">
+              <Card className="border-destructive/30 bg-card shadow-none border-dashed overflow-hidden">
                 <CardHeader className="bg-destructive/10 border-b border-destructive/10">
-                  <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-destructive">
-                    <ShieldAlert className="h-4 w-4" /> System Override Terminal
+                  <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-destructive truncate">
+                    <ShieldAlert className="h-4 w-4 shrink-0" /> System Override Terminal
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
@@ -539,8 +539,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                        <History className="h-3 w-3" /> Manual Ledger ($)
+                      <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 truncate">
+                        <History className="h-3 w-3 shrink-0" /> Manual Ledger ($)
                       </Label>
                       <Input 
                         type="number" 
@@ -551,8 +551,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                        <DollarSign className="h-3 w-3" /> Manual Total AUM ($)
+                      <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 truncate">
+                        <DollarSign className="h-3 w-3 shrink-0" /> Manual Total AUM ($)
                       </Label>
                       <Input 
                         type="number" 
@@ -563,8 +563,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                        <TrendingUp className="h-3 w-3" /> Manual Net PnL ($)
+                      <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 truncate">
+                        <TrendingUp className="h-3 w-3 shrink-0" /> Manual Net PnL ($)
                       </Label>
                       <Input 
                         type="number" 
@@ -588,33 +588,33 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             </TabsContent>
 
             <TabsContent value="assets" className="space-y-6">
-              <Card className="border-border bg-card shadow-none">
+              <Card className="border-border bg-card shadow-none overflow-hidden">
                 <CardHeader className="border-b bg-muted/10">
-                  <div className="text-sm font-bold uppercase tracking-widest">Holding Portfolio Audit</div>
+                  <div className="text-sm font-bold uppercase tracking-widest truncate">Holding Portfolio Audit</div>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className="p-0 overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent bg-muted/20 border-border">
-                        <TableHead className="text-[10px] uppercase font-bold px-6">Asset</TableHead>
-                        <TableHead className="text-[10px] uppercase font-bold">Class</TableHead>
-                        <TableHead className="text-right text-[10px] uppercase font-bold px-6">Valuation</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Asset</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold h-10 whitespace-nowrap">Class</TableHead>
+                        <TableHead className="text-right text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Valuation</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {investments?.map((inv) => (
                         <TableRow key={inv.id} className="border-border hover:bg-muted/30">
-                          <TableCell className="px-6">
+                          <TableCell className="px-6 whitespace-nowrap">
                             <div className="flex flex-col">
-                              <span className="font-bold text-sm">{inv.name}</span>
+                              <span className="font-bold text-sm uppercase truncate max-w-[150px]">{inv.name}</span>
                               <span className="text-[10px] font-mono text-muted-foreground uppercase">{inv.symbol}</span>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="whitespace-nowrap">
                             <Badge variant="secondary" className="text-[9px] uppercase font-bold py-0">{inv.type}</Badge>
                           </TableCell>
-                          <TableCell className="text-right font-mono text-xs font-bold px-6 text-primary">
-                            ${(inv.currentMarketPricePerUnit * inv.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          <TableCell className="text-right font-mono text-xs font-bold px-6 text-primary whitespace-nowrap">
+                            ${(inv.currentMarketPricePerUnit * inv.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </TableCell>
                         </TableRow>
                       ))}

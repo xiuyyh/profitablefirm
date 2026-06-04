@@ -25,27 +25,27 @@ export function MetricCard({
 
   return (
     <Card className={cn(
-      "relative border-border bg-card/80 backdrop-blur-md shadow-none transition-all hover:bg-card hover:border-primary/40 group overflow-hidden",
+      "relative border-border bg-card/80 backdrop-blur-md shadow-none transition-all hover:bg-card hover:border-primary/40 group overflow-hidden min-w-0",
       variant === "accent" ? "border-primary/30 bg-primary/5" : "border-glow"
     )}>
       <div className="scan-line" />
-      <CardContent className="p-5">
+      <CardContent className="p-5 overflow-hidden">
         <div className="flex items-center justify-between space-y-0 pb-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground group-hover:text-primary transition-colors">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground group-hover:text-primary transition-colors truncate">
             {title}
           </p>
-          <div className="p-2 rounded-sm bg-muted/30 border border-primary/10 group-hover:border-primary/40 transition-all">
+          <div className="p-2 rounded-sm bg-muted/30 border border-primary/10 group-hover:border-primary/40 transition-all shrink-0">
             <Icon className="h-4 w-4 text-primary glow-text" />
           </div>
         </div>
-        <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-black tracking-tighter font-mono text-foreground glow-text">
+        <div className="flex flex-col gap-1 min-w-0">
+          <h2 className="text-2xl font-black tracking-tighter font-mono text-foreground glow-text truncate block" title={value}>
             {value}
           </h2>
           {trend !== undefined && (
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex items-center gap-2 pt-2 min-w-0">
               <span className={cn(
-                "flex items-center text-[10px] font-mono font-bold px-2 py-0.5 rounded-sm border",
+                "flex items-center text-[10px] font-mono font-bold px-2 py-0.5 rounded-sm border shrink-0",
                 isPositive 
                   ? "bg-primary/10 text-primary border-primary/20"
                   : "bg-destructive/10 text-destructive border-destructive/20"
@@ -53,7 +53,7 @@ export function MetricCard({
                 {isPositive ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
                 {isPositive ? "+" : "-"}{Math.abs(trend).toFixed(2)}%
               </span>
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground truncate">
                 {trendLabel || "DELTA"}
               </span>
             </div>
