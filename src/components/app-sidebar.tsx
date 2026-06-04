@@ -1,3 +1,4 @@
+
 "use client";
 
 import { 
@@ -15,7 +16,8 @@ import {
   Activity,
   FileText,
   Lock,
-  Globe
+  Globe,
+  CreditCard
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +38,7 @@ import { doc } from "firebase/firestore";
 const investorNav = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Briefcase, label: "Investments", href: "/investments" },
+  { icon: CreditCard, label: "Deposit", href: "/deposit" },
   { icon: History, label: "Transactions", href: "/transactions" },
   { icon: TrendingUp, label: "Performance", href: "/performance" },
 ];

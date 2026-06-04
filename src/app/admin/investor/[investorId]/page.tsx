@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, use, useState, useMemo } from "react";
@@ -23,7 +24,10 @@ import {
   Loader2,
   Lock,
   Unlock,
-  Activity
+  Activity,
+  CheckCircle2,
+  XCircle,
+  Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -116,7 +120,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [investorProfile, isInitialized]);
 
-  // SYNCED HIGH-FREQUENCY TICKER (PAUSES ON STATIC)
+  // SYNCED HIGH-FREQUENCY TICKER
   useEffect(() => {
     if (!investorProfile?.autoProfitEnabled) {
       setMarketNoise(1);
@@ -162,6 +166,10 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     });
   }, [rawTransactions]);
 
+  const pendingTransactions = useMemo(() => {
+    return transactions?.filter(tx => tx.status === 'Pending') || [];
+  }, [transactions]);
+
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push("/login");
@@ -171,9 +179,10 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [user, isUserLoading, adminProfile, router]);
 
-  // LEDGER ACCOUNTING
+  // LEDGER ACCOUNTING (Only completed)
   const ledgerBalance = useMemo(() => {
     const calculated = transactions?.reduce((sum, tx) => {
+      if (tx.status !== 'Completed') return sum;
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum + tx.amount;
     }, 0) || 0;
@@ -183,6 +192,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
   const netExternalCapital = useMemo(() => {
     const assetCostBasis = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
     const netCashInjected = transactions?.reduce((sum, tx) => {
+      if (tx.status !== 'Completed') return sum;
       if (tx.type === 'Deposit') return sum + tx.amount;
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum;
@@ -231,6 +241,33 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
       variant: "destructive",
       title: "System Override Executed",
       description: "Manual financial parameters have been committed to the neural core.",
+    });
+  };
+
+  const handleApproveTransaction = (txId: string) => {
+    if (!firestore || !investorId) return;
+    const docRef = doc(firestore, "investorProfiles", investorId, "transactions", txId);
+    updateDocumentNonBlocking(docRef, {
+      status: "Completed",
+      updatedAt: serverTimestamp()
+    });
+    toast({
+      title: "Transaction Approved",
+      description: "Capital has been settled into the ledger.",
+    });
+  };
+
+  const handleDeclineTransaction = (txId: string) => {
+    if (!firestore || !investorId) return;
+    const docRef = doc(firestore, "investorProfiles", investorId, "transactions", txId);
+    updateDocumentNonBlocking(docRef, {
+      status: "Failed",
+      updatedAt: serverTimestamp()
+    });
+    toast({
+      variant: "destructive",
+      title: "Transaction Declined",
+      description: "Request marked as failed.",
     });
   };
 
@@ -316,12 +353,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     setNewTransaction({ type: "Deposit", amount: "", description: "" });
   };
 
-  const handleDeleteInvestment = (investmentId: string) => {
-    if (!firestore || !investorId) return;
-    const docRef = doc(firestore, "investorProfiles", investorId, "investments", investmentId);
-    deleteDocumentNonBlocking(docRef);
-  };
-
   if (isUserLoading || isProfileLoading || !adminProfile || adminProfile.role !== "admin") {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
@@ -366,6 +397,53 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               </div>
             </div>
           </div>
+
+          {/* Pending Approvals Alert */}
+          {pendingTransactions.length > 0 && (
+            <Card className="border-primary/50 bg-primary/5 shadow-none overflow-hidden">
+              <CardHeader className="py-3 px-4 bg-primary/10 border-b border-primary/20 flex flex-row items-center justify-between">
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                  <ShieldAlert className="h-3.5 w-3.5 text-primary" /> Pending Financial Approvals
+                </CardTitle>
+                <Badge variant="outline" className="text-[8px] bg-primary/20 text-primary border-primary/30">
+                  {pendingTransactions.length} REQUESTS
+                </Badge>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent bg-primary/5 border-primary/10">
+                      <TableHead className="text-[9px] uppercase font-bold h-8 px-4">Amount</TableHead>
+                      <TableHead className="text-[9px] uppercase font-bold h-8">Proof (Sender Address)</TableHead>
+                      <TableHead className="text-right text-[9px] uppercase font-bold h-8 px-4">Decision</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingTransactions.map((tx) => (
+                      <TableRow key={tx.id} className="border-primary/10 hover:bg-primary/5">
+                        <TableCell className="font-mono text-xs font-bold px-4 py-2">${tx.amount.toLocaleString()}</TableCell>
+                        <TableCell className="py-2">
+                          <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+                            <Wallet className="h-3 w-3" /> {tx.senderAddress || 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right px-4 py-2">
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" onClick={() => handleApproveTransaction(tx.id)} className="h-7 px-3 bg-green-500 hover:bg-green-600 text-white text-[9px] font-bold uppercase tracking-widest">
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeclineTransaction(tx.id)} className="h-7 px-3 text-[9px] font-bold uppercase tracking-widest">
+                              <XCircle className="h-3 w-3 mr-1" /> Decline
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <MetricCard 
@@ -501,6 +579,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                         <TableRow className="hover:bg-transparent bg-muted/20 border-border">
                           <TableHead className="text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Timestamp</TableHead>
                           <TableHead className="text-[10px] uppercase font-bold h-10 whitespace-nowrap">Protocol</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold h-10 whitespace-nowrap">Status</TableHead>
                           <TableHead className="text-right text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Value</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -511,6 +590,11 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                             <TableCell>
                               <Badge variant="outline" className={`text-[9px] uppercase font-bold px-1.5 py-0 whitespace-nowrap ${tx.type === 'Withdrawal' ? 'border-red-500/30 text-red-500' : 'border-green-500/30 text-green-500'}`}>
                                 {tx.type}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-[8px] uppercase font-bold px-1 py-0 ${tx.status === 'Completed' ? 'border-green-500/30 text-green-500' : tx.status === 'Pending' ? 'border-yellow-500/30 text-yellow-500' : 'border-red-500/30 text-red-500'}`}>
+                                {tx.status}
                               </Badge>
                             </TableCell>
                             <TableCell className={`text-right font-mono text-xs font-bold px-6 whitespace-nowrap ${tx.type === 'Withdrawal' ? 'text-red-500' : 'text-green-500'}`}>

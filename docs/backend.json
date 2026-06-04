@@ -169,6 +169,7 @@
         "currency": { "type": "string" },
         "description": { "type": "string" },
         "status": { "type": "string", "enum": ["Completed", "Pending", "Failed"] },
+        "senderAddress": { "type": "string", "description": "Wallet address used for the payment proof." },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "investorId", "type", "amount", "currency", "status", "createdAt"]

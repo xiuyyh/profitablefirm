@@ -86,7 +86,7 @@ export default function Dashboard() {
 
   const { data: rawTransactions } = useCollection(transactionsQuery);
 
-  // CLIENT-SIDE SORTING (NO INDEXES REQUIRED)
+  // CLIENT-SIDE SORTING
   const investments = useMemo(() => {
     if (!rawInvestments) return null;
     return [...rawInvestments].sort((a, b) => {
@@ -105,9 +105,10 @@ export default function Dashboard() {
     });
   }, [rawTransactions]);
 
-  // LEDGER ACCOUNTING
+  // LEDGER ACCOUNTING (Only completed)
   const ledgerBalance = useMemo(() => {
     const calculated = transactions?.reduce((sum, tx) => {
+      if (tx.status !== 'Completed') return sum;
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum + tx.amount;
     }, 0) || 0;
@@ -117,6 +118,7 @@ export default function Dashboard() {
   const netExternalCapital = useMemo(() => {
     const assetCostBasis = investments?.reduce((sum, inv) => sum + (inv.purchasePricePerUnit * inv.quantity), 0) || 0;
     const netCashInjected = transactions?.reduce((sum, tx) => {
+      if (tx.status !== 'Completed') return sum;
       if (tx.type === 'Deposit') return sum + tx.amount;
       if (tx.type === 'Withdrawal') return sum - tx.amount;
       return sum;
