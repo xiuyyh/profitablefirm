@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc, query, where, collectionGroup, serverTimestamp } from "firebase/firestore";
+import { collection, doc, query, where, collectionGroup, serverTimestamp, orderBy } from "firebase/firestore";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -63,9 +63,14 @@ export default function AdminControlPanel() {
   const { data: rawInvestors, isLoading: isInvestorsLoading } = useCollection(investorsQuery);
 
   // Fetch all pending transactions across all users
+  // Note: This query requires a composite index: transactions (Collection Group), status (ASC), createdAt (DESC)
   const pendingTransactionsQuery = useMemoFirebase(() => {
     if (!firestore || !profile || profile.role !== "admin") return null;
-    return query(collectionGroup(firestore, "transactions"), where("status", "==", "Pending"));
+    return query(
+      collectionGroup(firestore, "transactions"), 
+      where("status", "==", "Pending"),
+      orderBy("createdAt", "desc")
+    );
   }, [firestore, profile]);
 
   const { data: pendingRequests, isLoading: isPendingLoading } = useCollection(pendingTransactionsQuery);
@@ -78,15 +83,6 @@ export default function AdminControlPanel() {
       return timeB - timeA;
     });
   }, [rawInvestors]);
-
-  const sortedPendingRequests = useMemo(() => {
-    if (!pendingRequests) return null;
-    return [...pendingRequests].sort((a, b) => {
-      const timeA = a.createdAt?.seconds || 0;
-      const timeB = b.createdAt?.seconds || 0;
-      return timeB - timeA;
-    });
-  }, [pendingRequests]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -205,7 +201,7 @@ export default function AdminControlPanel() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {sortedPendingRequests?.map((req) => (
+                        {pendingRequests?.map((req) => (
                           <TableRow key={req.id} className="border-border hover:bg-muted/30">
                             <TableCell className="text-[10px] font-mono whitespace-nowrap">
                               {req.createdAt ? new Date(req.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
@@ -236,7 +232,7 @@ export default function AdminControlPanel() {
                             </TableCell>
                           </TableRow>
                         ))}
-                        {!sortedPendingRequests?.length && (
+                        {!pendingRequests?.length && (
                           <TableRow>
                             <TableCell colSpan={5} className="text-center py-20 opacity-50">
                               <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Queue Empty</span>

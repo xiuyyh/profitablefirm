@@ -15,11 +15,10 @@ service cloud.firestore {
 
     /**
      * @description Checks if the authenticated user has administrative privileges.
-     * Robust check that ensures the document exists before checking roles.
+     * Simplified for better performance in collection group queries.
      */
     function isAdmin() {
       return isSignedIn() && 
-        exists(/databases/$(database)/documents/investorProfiles/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/investorProfiles/$(request.auth.uid)).data.role == 'admin';
     }
 
@@ -47,7 +46,7 @@ service cloud.firestore {
 
     // --- COLLECTION GROUP RULES ---
     
-    // Allow admins to query all transactions across all investors (for the Global Approval Hub)
+    // Explicit rule for collection group queries across the entire database
     match /{path=**}/transactions/{transactionId} {
       allow list: if isAdmin();
     }
