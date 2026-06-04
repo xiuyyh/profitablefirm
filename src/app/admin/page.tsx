@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy } from "firebase/firestore";
+import { collection, query, where, orderBy, collectionGroup } from "firebase/firestore";
 import Link from "next/link";
 import { MetricCard } from "@/components/dashboard/metric-card";
 
@@ -38,9 +38,9 @@ export default function AdminDashboard() {
 
   const pendingTxQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // Collection Group query for all pending transactions
+    // Collection Group query for all pending transactions across all users
     return query(
-      collection(firestore, "transactions"),
+      collectionGroup(firestore, "transactions"),
       where("status", "==", "Pending"),
       orderBy("createdAt", "desc")
     );

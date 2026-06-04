@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy, doc } from "firebase/firestore";
+import { query, where, orderBy, doc, collectionGroup } from "firebase/firestore";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ export default function PendingDepositsPage() {
   const pendingDepositsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
-      collection(firestore, "transactions"),
+      collectionGroup(firestore, "transactions"),
       where("status", "==", "Pending"),
       where("type", "==", "Deposit"),
       orderBy("createdAt", "desc")
@@ -52,6 +52,7 @@ export default function PendingDepositsPage() {
   const handleAction = (deposit: any, status: 'Completed' | 'Failed') => {
     if (!firestore) return;
 
+    // Use absolute path for updates if known, or construct from IDs
     const docRef = doc(firestore, "investorProfiles", deposit.investorId, "transactions", deposit.id);
     
     updateDocumentNonBlocking(docRef, {
