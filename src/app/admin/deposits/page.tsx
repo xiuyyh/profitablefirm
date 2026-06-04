@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -39,7 +40,7 @@ export default function PendingDepositsPage() {
   const pendingDepositsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
-      collection(firestore, "transactions"), // Using group query pattern
+      collection(firestore, "transactions"),
       where("status", "==", "Pending"),
       where("type", "==", "Deposit"),
       orderBy("createdAt", "desc")
@@ -51,9 +52,6 @@ export default function PendingDepositsPage() {
   const handleAction = (deposit: any, status: 'Completed' | 'Failed') => {
     if (!firestore) return;
 
-    // IMPORTANT: transactions is subcollection, but we need the correct path
-    // The collectionGroup query items have ID but we need to know the parent.
-    // In our schema, transactions are under /investorProfiles/{investorId}/transactions/{transactionId}
     const docRef = doc(firestore, "investorProfiles", deposit.investorId, "transactions", deposit.id);
     
     updateDocumentNonBlocking(docRef, {
@@ -62,8 +60,8 @@ export default function PendingDepositsPage() {
     });
 
     toast({
-      title: status === 'Completed' ? "Deposit Approved" : "Deposit Declined",
-      description: `The request for $${deposit.amount.toLocaleString()} has been updated.`,
+      title: status === 'Completed' ? "Deposit Finalized" : "Deposit Rejected",
+      description: `The inbound request for $${deposit.amount.toLocaleString()} has been processed.`,
     });
   };
 
@@ -75,17 +73,17 @@ export default function PendingDepositsPage() {
           <div className="flex items-center gap-4">
             <SidebarTrigger />
             <div className="h-4 w-px bg-border mx-2" />
-            <h1 className="text-xl font-bold flex items-center gap-2">
+            <h1 className="text-xl font-bold flex items-center gap-2 uppercase tracking-widest">
               <ArrowDownLeft className="h-5 w-5 text-primary" />
-              Pending Deposits
+              Deposit Audit
             </h1>
           </div>
         </header>
 
         <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
-          <Card className="border-border bg-card shadow-none">
+          <Card className="border-border bg-card shadow-none rounded-none border-glow">
             <CardHeader className="border-b bg-muted/10">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-primary">Inbound Funding Requests</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Awaiting Verification</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {isLoading ? (
@@ -96,52 +94,50 @@ export default function PendingDepositsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/20 border-border">
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Time</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Investor ID</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Method</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Sender Wallet</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Amount</TableHead>
-                      <TableHead className="w-[150px]"></TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-widest h-12 px-6">Timestamp</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-widest h-12">Network</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-widest h-12">Sender Wallet</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-widest h-12">Amount</TableHead>
+                      <TableHead className="w-[150px] px-6"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {deposits?.map((d) => (
                       <TableRow key={d.id} className="border-border hover:bg-muted/30">
-                        <TableCell className="font-mono text-[10px] text-muted-foreground">
-                          {d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString() : 'Processing'}
+                        <TableCell className="px-6 font-mono text-[10px] text-muted-foreground uppercase">
+                          {d.createdAt ? new Date(d.createdAt.seconds * 1000).toLocaleString() : 'PENDING SYNC'}
                         </TableCell>
-                        <TableCell className="font-mono text-[10px]">{d.investorId.substring(0, 8)}...</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[9px] uppercase tracking-widest font-black border-primary/30 text-primary bg-primary/5">
-                            {d.paymentMethod || "UNKNOWN"}
+                          <Badge variant="outline" className="text-[9px] uppercase font-black tracking-widest border-primary/30 text-primary bg-primary/5 rounded-none">
+                            {d.paymentMethod}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-[150px] truncate">
+                        <TableCell className="max-w-[200px] truncate">
                            <div className="flex items-center gap-2">
                              <Wallet className="h-3 w-3 opacity-30 shrink-0" />
-                             <span className="text-[9px] font-mono text-muted-foreground truncate" title={d.senderAddress}>{d.senderAddress || "NOT PROVIDED"}</span>
+                             <span className="text-[10px] font-mono text-muted-foreground truncate select-all">{d.senderAddress || "UNSPECIFIED"}</span>
                            </div>
                         </TableCell>
-                        <TableCell className="text-right font-mono text-sm font-black text-green-500">
-                          ${d.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        <TableCell className="text-right font-mono text-sm font-black text-primary glow-text">
+                          +${d.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="px-6">
                           <div className="flex items-center gap-2">
                             <Button 
                               size="sm" 
                               variant="ghost" 
-                              className="h-8 px-2 text-green-500 hover:bg-green-500/10 hover:text-green-500"
+                              className="h-9 px-3 text-green-500 hover:bg-green-500/10 hover:text-green-500 uppercase text-[9px] font-black tracking-widest"
                               onClick={() => handleAction(d, 'Completed')}
                             >
-                              <CheckCircle2 className="h-4 w-4 mr-1" /> Approve
+                              <CheckCircle2 className="h-4 w-4 mr-2" /> Approve
                             </Button>
                             <Button 
                               size="sm" 
                               variant="ghost" 
-                              className="h-8 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              className="h-9 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive uppercase text-[9px] font-black tracking-widest"
                               onClick={() => handleAction(d, 'Failed')}
                             >
-                              <XCircle className="h-4 w-4 mr-1" /> Decline
+                              <XCircle className="h-4 w-4 mr-2" /> Decline
                             </Button>
                           </div>
                         </TableCell>
@@ -149,10 +145,10 @@ export default function PendingDepositsPage() {
                     ))}
                     {!deposits?.length && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-24">
-                          <div className="flex flex-col items-center gap-2 opacity-50">
-                            <Clock className="h-8 w-8 mb-2" />
-                            <span className="text-[10px] uppercase font-black tracking-[0.2em]">Queue is currently empty</span>
+                        <TableCell colSpan={5} className="text-center py-32">
+                          <div className="flex flex-col items-center gap-4 opacity-30">
+                            <Clock className="h-10 w-10 mb-2" />
+                            <span className="text-[10px] uppercase font-black tracking-[0.5em]">No pending deposit requests in queue</span>
                           </div>
                         </TableCell>
                       </TableRow>

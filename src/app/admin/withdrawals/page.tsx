@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -39,7 +40,7 @@ export default function PendingWithdrawalsPage() {
   const pendingWithdrawalsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(
-      collection(firestore, "transactions"), // Using group query pattern
+      collection(firestore, "transactions"),
       where("status", "==", "Pending"),
       where("type", "==", "Withdrawal"),
       orderBy("createdAt", "desc")
@@ -59,8 +60,8 @@ export default function PendingWithdrawalsPage() {
     });
 
     toast({
-      title: status === 'Completed' ? "Withdrawal Confirmed" : "Withdrawal Rejected",
-      description: `The request for $${withdrawal.amount.toLocaleString()} has been updated.`,
+      title: status === 'Completed' ? "Withdrawal Finalized" : "Withdrawal Rejected",
+      description: `The outbound request for $${withdrawal.amount.toLocaleString()} has been updated.`,
     });
   };
 
@@ -72,73 +73,71 @@ export default function PendingWithdrawalsPage() {
           <div className="flex items-center gap-4">
             <SidebarTrigger />
             <div className="h-4 w-px bg-border mx-2" />
-            <h1 className="text-xl font-bold flex items-center gap-2">
+            <h1 className="text-xl font-bold flex items-center gap-2 uppercase tracking-widest">
               <ArrowUpRight className="h-5 w-5 text-destructive" />
-              Audit Withdrawals
+              Payout Audit
             </h1>
           </div>
         </header>
 
         <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
-          <Card className="border-border bg-card shadow-none">
+          <Card className="border-border bg-card shadow-none rounded-none border-glow">
             <CardHeader className="border-b bg-muted/10">
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-destructive">Outbound Payout Requests</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-destructive">Awaiting Payout Execution</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {isLoading ? (
                 <div className="h-40 flex items-center justify-center">
-                  <Terminal className="h-6 w-6 animate-spin text-primary" />
+                  <Terminal className="h-6 w-6 animate-spin text-destructive" />
                 </div>
               ) : (
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/20 border-border">
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Time</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Investor ID</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Network</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Target Wallet</TableHead>
-                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Amount</TableHead>
-                      <TableHead className="w-[150px]"></TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-widest h-12 px-6">Timestamp</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-widest h-12">Network</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-widest h-12">Target Address</TableHead>
+                      <TableHead className="text-right text-[10px] uppercase font-bold tracking-widest h-12">Amount</TableHead>
+                      <TableHead className="w-[150px] px-6"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {withdrawals?.map((w) => (
                       <TableRow key={w.id} className="border-border hover:bg-muted/30">
-                        <TableCell className="font-mono text-[10px] text-muted-foreground">
-                          {w.createdAt ? new Date(w.createdAt.seconds * 1000).toLocaleString() : 'Processing'}
+                        <TableCell className="px-6 font-mono text-[10px] text-muted-foreground uppercase">
+                          {w.createdAt ? new Date(w.createdAt.seconds * 1000).toLocaleString() : 'PENDING SYNC'}
                         </TableCell>
-                        <TableCell className="font-mono text-[10px]">{w.investorId.substring(0, 8)}...</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[9px] uppercase tracking-widest font-black border-destructive/30 text-destructive bg-destructive/5">
-                            {w.paymentMethod || "UNKNOWN"}
+                          <Badge variant="outline" className="text-[9px] uppercase font-black tracking-widest border-destructive/30 text-destructive bg-destructive/5 rounded-none">
+                            {w.paymentMethod}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-[150px] truncate">
+                        <TableCell className="max-w-[200px] truncate">
                            <div className="flex items-center gap-2">
                              <ExternalLink className="h-3 w-3 opacity-30 shrink-0" />
-                             <span className="text-[9px] font-mono text-muted-foreground truncate" title={w.destinationAddress}>{w.destinationAddress || "ERROR: NO ADDRESS"}</span>
+                             <span className="text-[10px] font-mono text-muted-foreground truncate select-all">{w.destinationAddress || "ERROR: NO ADDR"}</span>
                            </div>
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm font-black text-destructive">
                           -${w.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="px-6">
                           <div className="flex items-center gap-2">
                             <Button 
                               size="sm" 
                               variant="ghost" 
-                              className="h-8 px-2 text-green-500 hover:bg-green-500/10 hover:text-green-500"
+                              className="h-9 px-3 text-green-500 hover:bg-green-500/10 hover:text-green-500 uppercase text-[9px] font-black tracking-widest"
                               onClick={() => handleAction(w, 'Completed')}
                             >
-                              <CheckCircle2 className="h-4 w-4 mr-1" /> Fulfill
+                              <CheckCircle2 className="h-4 w-4 mr-2" /> Fulfill
                             </Button>
                             <Button 
                               size="sm" 
                               variant="ghost" 
-                              className="h-8 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              className="h-9 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive uppercase text-[9px] font-black tracking-widest"
                               onClick={() => handleAction(w, 'Failed')}
                             >
-                              <XCircle className="h-4 w-4 mr-1" /> Reject
+                              <XCircle className="h-4 w-4 mr-2" /> Reject
                             </Button>
                           </div>
                         </TableCell>
@@ -146,10 +145,10 @@ export default function PendingWithdrawalsPage() {
                     ))}
                     {!withdrawals?.length && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-24">
-                          <div className="flex flex-col items-center gap-2 opacity-50">
-                            <Clock className="h-8 w-8 mb-2" />
-                            <span className="text-[10px] uppercase font-black tracking-[0.2em]">All payout requests fulfilled</span>
+                        <TableCell colSpan={5} className="text-center py-32">
+                          <div className="flex flex-col items-center gap-4 opacity-30">
+                            <Clock className="h-10 w-10 mb-2" />
+                            <span className="text-[10px] uppercase font-black tracking-[0.5em]">All outbound payout requests cleared</span>
                           </div>
                         </TableCell>
                       </TableRow>
