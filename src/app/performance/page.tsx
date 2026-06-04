@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from "react";
@@ -64,7 +63,6 @@ export default function PerformancePage() {
 
   const { data: rawTransactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
 
-  // CLIENT-SIDE SORTING
   const investments = useMemo(() => {
     if (!rawInvestments) return null;
     return [...rawInvestments].sort((a, b) => {
@@ -83,7 +81,6 @@ export default function PerformancePage() {
     });
   }, [rawTransactions]);
 
-  // LEDGER ACCOUNTING (Same integrity logic as Dashboard)
   const ledgerBalance = useMemo(() => {
     return transactions?.reduce((sum, tx) => {
       if (tx.type === 'Withdrawal') return sum - tx.amount;
@@ -109,7 +106,6 @@ export default function PerformancePage() {
   const totalPnL = settledEquity - netExternalCapital;
   const roiPercentage = netExternalCapital > 0 ? (totalPnL / netExternalCapital) * 100 : 0;
 
-  // PROFIT-ONLY FILTER (For performance tracking)
   const profitLogs = useMemo(() => {
     if (!transactions) return [];
     return transactions.filter(tx => tx.type === 'Profit' || tx.type === 'Bonus');
@@ -140,13 +136,13 @@ export default function PerformancePage() {
             <div className="h-4 w-px bg-border mx-2" />
             <h1 className="text-xl font-bold flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Performance Terminal
+              Growth History
             </h1>
           </div>
           <div className="flex items-center gap-3">
              <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 border border-primary/20 rounded-sm">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-primary">High Fidelity Sync</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Live Update</span>
              </div>
           </div>
         </header>
@@ -154,33 +150,33 @@ export default function PerformancePage() {
         <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-4">
             <Activity className="h-3.5 w-3.5" />
-            Algorithmic Growth Auditor
+            Growth Tracker
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <MetricCard 
-              title="Total Yield (PnL)" 
+              title="Total Profit" 
               value={`$${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={roiPercentage}
               icon={Target}
               variant="accent"
-              trendLabel="NET ROI"
+              trendLabel="NET GAIN"
             />
             <MetricCard 
-              title="24H Accrual" 
+              title="Today's Earnings" 
               value={`$${last24hProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={Zap}
-              trendLabel="DAILY VELOCITY"
+              trendLabel="DAILY SPEED"
             />
             <MetricCard 
-              title="Return on Basis" 
+              title="Return on Investment" 
               value={`${roiPercentage.toFixed(2)}%`} 
               icon={BarChart3}
               trend={roiPercentage}
             />
             <MetricCard 
-              title="Audit Status" 
-              value="VERIFIED" 
+              title="Status" 
+              value="ACTIVE" 
               icon={ShieldCheck}
             />
           </div>
@@ -192,13 +188,13 @@ export default function PerformancePage() {
             
             <Card className="border border-border bg-card/40 shadow-none border-glow flex flex-col">
               <CardHeader className="border-b bg-muted/10">
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Efficiency Audit</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Investment Details</CardTitle>
               </CardHeader>
               <CardContent className="pt-6 space-y-6 flex-1">
                 <div className="space-y-4">
                   <div className="flex justify-between items-end border-b border-border pb-4">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Injected Capital</p>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Total Invested</p>
                       <p className="text-xl font-mono font-bold">${netExternalCapital.toLocaleString()}</p>
                     </div>
                     <Badge variant="outline" className="text-[8px] uppercase tracking-tighter opacity-50">Base</Badge>
@@ -206,18 +202,18 @@ export default function PerformancePage() {
                   
                   <div className="flex justify-between items-end border-b border-border pb-4">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Settled Equity</p>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Current Balance</p>
                       <p className="text-xl font-mono font-bold">${settledEquity.toLocaleString()}</p>
                     </div>
                     <div className="flex items-center gap-1 text-primary">
                       <ArrowUpRight className="h-4 w-4" />
-                      <span className="text-[10px] font-bold">LADDER UP</span>
+                      <span className="text-[10px] font-bold">GOING UP</span>
                     </div>
                   </div>
 
                   <div className="pt-4 space-y-2">
                     <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
-                      <span className="text-muted-foreground">Engine Utilization</span>
+                      <span className="text-muted-foreground">System Usage</span>
                       <span className="text-primary">{profile?.autoProfitEnabled ? '100%' : '0%'}</span>
                     </div>
                     <div className="h-1 bg-muted rounded-none overflow-hidden">
@@ -232,10 +228,10 @@ export default function PerformancePage() {
                 <div className="mt-auto p-4 bg-primary/5 border border-primary/20 rounded-sm">
                   <div className="flex items-center gap-2 mb-2">
                     <Clock className="h-3 w-3 text-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-primary">Network Protocol</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-primary">Trading Info</span>
                   </div>
                   <p className="text-[8px] text-muted-foreground leading-relaxed uppercase tracking-tighter">
-                    Accrual is calculated at 60-second intervals based on institutional ladder logic (+0.8% bias). Integrity checked against global ledger timestamp.
+                    Earnings are updated every 60 seconds. Our smart system handles the complex market moves for you.
                   </p>
                 </div>
               </CardContent>
@@ -246,9 +242,9 @@ export default function PerformancePage() {
             <CardHeader className="border-b bg-muted/10 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                  <Target className="h-4 w-4 text-primary" /> Specific Yield Accrual Log
+                  <Target className="h-4 w-4 text-primary" /> Earnings History
                 </CardTitle>
-                <CardDescription className="text-[9px] uppercase mt-1">Audit-ready historical profit distributions</CardDescription>
+                <CardDescription className="text-[9px] uppercase mt-1">List of your recent earnings</CardDescription>
               </div>
               <Badge variant="outline" className="text-[9px] border-primary/20 text-primary font-mono px-3">
                 {profitLogs.length} EVENTS
@@ -258,10 +254,10 @@ export default function PerformancePage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-border bg-muted/5">
-                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Timestamp</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10">Classification</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10">Network Node</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Accrual Value</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Date & Time</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10">Type</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10">Details</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -289,7 +285,7 @@ export default function PerformancePage() {
                   {!profitLogs.length && (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-20 text-muted-foreground text-[9px] font-black uppercase tracking-[0.5em] opacity-30">
-                        NO ACCRUAL DATA FOUND ON LEDGER
+                        NO EARNINGS HISTORY YET
                       </TableCell>
                     </TableRow>
                   )}

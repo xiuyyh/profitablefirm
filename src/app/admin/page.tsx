@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo } from "react";
@@ -46,8 +45,6 @@ export default function AdminControlPanel() {
 
   const { data: profile, isLoading: isProfileLoading } = useDoc(profileRef);
 
-  // GATED QUERY: Only fetch investors if the current user is confirmed as an admin.
-  // This prevents permission errors during initial load.
   const investorsQuery = useMemoFirebase(() => {
     if (!firestore || !profile || profile.role !== "admin") return null;
     return collection(firestore, "investorProfiles");
@@ -91,28 +88,28 @@ export default function AdminControlPanel() {
             <div className="h-4 w-px bg-border mx-2" />
             <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-destructive" />
-              Administrative Control Panel
+              Admin Panel
             </h1>
           </div>
           <Badge variant="outline" className="border-destructive/30 text-destructive bg-destructive/5 font-mono text-[10px] uppercase tracking-widest">
-            Level 4 Authorization Required
+            Admin Access Only
           </Badge>
         </header>
 
         <main className="p-6 md:p-8 space-y-6 w-full max-w-none">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             <Activity className="h-3 w-3" />
-            System Overview
+            Overview
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <MetricCard 
-              title="Total Investors" 
+              title="Total Users" 
               value={investors?.length.toString() || "0"} 
               icon={Users}
             />
             <MetricCard 
-              title="Global AUM" 
+              title="Global Balance" 
               value="$0.00" 
               icon={DollarSign}
               trend={0}
@@ -129,13 +126,13 @@ export default function AdminControlPanel() {
             <CardHeader className="border-b bg-muted/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-bold uppercase tracking-widest">Active Investor Profiles</CardTitle>
+                  <CardTitle className="text-sm font-bold uppercase tracking-widest">All Users</CardTitle>
                   <CardDescription className="text-xs text-muted-foreground uppercase mt-1">
-                    Manage and monitor identity verification and portfolio status
+                    Manage accounts and check status
                   </CardDescription>
                 </div>
                 <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold uppercase tracking-widest">
-                  Export Audit Log
+                  Export Logs
                 </Button>
               </div>
             </CardHeader>
@@ -148,10 +145,10 @@ export default function AdminControlPanel() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/10 border-border">
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Identity</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Email Access</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">User</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Email</TableHead>
                       <TableHead className="text-[10px] uppercase font-bold tracking-wider">Status</TableHead>
-                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Registration</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold tracking-wider">Joined On</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-bold tracking-wider">Action</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -174,7 +171,7 @@ export default function AdminControlPanel() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={`text-[9px] uppercase font-bold py-0 ${investor.role === 'admin' ? 'border-destructive text-destructive bg-destructive/5' : 'border-green-500/30 text-green-500 bg-green-500/5'}`}>
-                            {investor.role || 'investor'}
+                            {investor.role || 'user'}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -189,7 +186,7 @@ export default function AdminControlPanel() {
                             onClick={() => router.push(`/admin/investor/${investor.id}`)}
                             className="h-8 px-2 text-[10px] font-bold uppercase tracking-widest text-primary"
                           >
-                            Inspect <ChevronRight className="h-3 w-3 ml-1" />
+                            View Details <ChevronRight className="h-3 w-3 ml-1" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -199,7 +196,7 @@ export default function AdminControlPanel() {
                         <TableCell colSpan={5} className="text-center py-20">
                           <div className="flex flex-col items-center gap-2 opacity-50">
                             <Terminal className="h-6 w-6" />
-                            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Zero Identities Registered</span>
+                            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">No Users Found</span>
                           </div>
                         </TableCell>
                       </TableRow>

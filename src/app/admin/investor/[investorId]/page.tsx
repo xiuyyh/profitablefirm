@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, use, useState, useMemo } from "react";
@@ -120,7 +119,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [investorProfile, isInitialized]);
 
-  // SYNCED HIGH-FREQUENCY TICKER
   useEffect(() => {
     if (!investorProfile?.autoProfitEnabled) {
       setMarketNoise(1);
@@ -147,7 +145,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
   const { data: rawTransactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
 
-  // CLIENT-SIDE SORTING
   const investments = useMemo(() => {
     if (!rawInvestments) return null;
     return [...rawInvestments].sort((a, b) => {
@@ -179,7 +176,6 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     }
   }, [user, isUserLoading, adminProfile, router]);
 
-  // LEDGER ACCOUNTING (Only completed)
   const ledgerBalance = useMemo(() => {
     const calculated = transactions?.reduce((sum, tx) => {
       if (tx.status !== 'Completed') return sum;
@@ -221,8 +217,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     });
 
     toast({
-      title: yieldConfig.enabled ? "Protocol Online" : "Protocol Suspended",
-      description: `Neural Link ${yieldConfig.enabled ? 'activated' : 'deactivated'}. Account balance is now ${yieldConfig.enabled ? 'active' : 'static'}.`,
+      title: yieldConfig.enabled ? "Trading Started" : "Trading Paused",
+      description: `Account is now ${yieldConfig.enabled ? 'active' : 'static'}.`,
     });
   };
 
@@ -238,9 +234,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     });
 
     toast({
-      variant: "destructive",
-      title: "System Override Executed",
-      description: "Manual financial parameters have been committed to the neural core.",
+      title: "Manual Changes Saved",
+      description: "Balance details have been updated manually.",
     });
   };
 
@@ -252,8 +247,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
       updatedAt: serverTimestamp()
     });
     toast({
-      title: "Transaction Approved",
-      description: "Capital has been settled into the ledger.",
+      title: "Payment Approved",
+      description: "Money has been added to the user's balance.",
     });
   };
 
@@ -266,8 +261,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     });
     toast({
       variant: "destructive",
-      title: "Transaction Declined",
-      description: "Request marked as failed.",
+      title: "Payment Declined",
+      description: "The request has been marked as failed.",
     });
   };
 
@@ -317,7 +312,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
       type: "Withdrawal",
       amount: allocationPool,
       currency: "USD",
-      description: `Neural Provisioning: ${type} Allocation`,
+      description: `Asset Setup: ${type} Allocation`,
       status: "Completed",
       createdAt: serverTimestamp()
     });
@@ -325,8 +320,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
     setTimeout(() => {
       setIsProvisioning(false);
       toast({
-        title: "Portfolio Provisioned",
-        description: `Neural Link loaded ${selected.length} assets. Capital basis adjusted.`,
+        title: "Sample Assets Added",
+        description: `Successfully added ${selected.length} assets to the portfolio.`,
       });
     }, 1500);
   };
@@ -340,14 +335,14 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
       type: newTransaction.type,
       amount: Number(newTransaction.amount),
       currency: "USD",
-      description: newTransaction.description || `${newTransaction.type} recorded by system admin`,
+      description: newTransaction.description || `${newTransaction.type} recorded by admin`,
       status: "Completed",
       createdAt: serverTimestamp()
     });
 
     toast({
-      title: "Ledger Adjusted",
-      description: `Injected ${newTransaction.type} of $${newTransaction.amount}.`,
+      title: "Balance Adjusted",
+      description: `Added ${newTransaction.type} of $${newTransaction.amount}.`,
     });
 
     setNewTransaction({ type: "Deposit", amount: "", description: "" });
@@ -375,12 +370,12 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               onClick={() => router.push("/admin")}
               className="h-8 px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground shrink-0"
             >
-              <ArrowLeft className="h-3 w-3 mr-1" /> Exit Audit
+              <ArrowLeft className="h-3 w-3 mr-1" /> Go Back
             </Button>
           </div>
           <div className="flex items-center gap-4 min-w-0">
             <Badge variant="outline" className="border-destructive/30 text-destructive bg-destructive/5 font-mono text-[10px] uppercase tracking-widest truncate">
-              ID: {investorId.substring(0, 12)}...
+              USER ID: {investorId.substring(0, 12)}...
             </Badge>
           </div>
         </header>
@@ -398,12 +393,11 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             </div>
           </div>
 
-          {/* Pending Approvals Alert */}
           {pendingTransactions.length > 0 && (
             <Card className="border-primary/50 bg-primary/5 shadow-none overflow-hidden">
               <CardHeader className="py-3 px-4 bg-primary/10 border-b border-primary/20 flex flex-row items-center justify-between">
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                  <ShieldAlert className="h-3.5 w-3.5 text-primary" /> Pending Financial Approvals
+                  <ShieldAlert className="h-3.5 w-3.5 text-primary" /> Pending Payments
                 </CardTitle>
                 <Badge variant="outline" className="text-[8px] bg-primary/20 text-primary border-primary/30">
                   {pendingTransactions.length} REQUESTS
@@ -414,8 +408,8 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-primary/5 border-primary/10">
                       <TableHead className="text-[9px] uppercase font-bold h-8 px-4">Amount</TableHead>
-                      <TableHead className="text-[9px] uppercase font-bold h-8">Proof (Sender Address)</TableHead>
-                      <TableHead className="text-right text-[9px] uppercase font-bold h-8 px-4">Decision</TableHead>
+                      <TableHead className="text-[9px] uppercase font-bold h-8">Sender Wallet Address</TableHead>
+                      <TableHead className="text-right text-[9px] uppercase font-bold h-8 px-4">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -430,10 +424,10 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                         <TableCell className="text-right px-4 py-2">
                           <div className="flex justify-end gap-2">
                             <Button size="sm" onClick={() => handleApproveTransaction(tx.id)} className="h-7 px-3 bg-green-500 hover:bg-green-600 text-white text-[9px] font-bold uppercase tracking-widest">
-                              <CheckCircle2 className="h-3 w-3 mr-1" /> Approve
+                              Approve
                             </Button>
                             <Button size="sm" variant="destructive" onClick={() => handleDeclineTransaction(tx.id)} className="h-7 px-3 text-[9px] font-bold uppercase tracking-widest">
-                              <XCircle className="h-3 w-3 mr-1" /> Decline
+                              Decline
                             </Button>
                           </div>
                         </TableCell>
@@ -447,27 +441,27 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <MetricCard 
-              title="Individual AUM" 
+              title="Total Balance" 
               value={`$${liveAUM.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={DollarSign}
               variant="accent"
               trend={Number(pnlPercentage.toFixed(2))}
-              trendLabel="LIVE AUDIT"
+              trendLabel="LIVE STATUS"
             />
             <MetricCard 
-              title="Yield Accumulation" 
+              title="Growth Trend" 
               value={`${netPnL >= 0 ? '+' : ''}$${netPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={Number(pnlPercentage.toFixed(2))}
               icon={TrendingUp}
-              trendLabel="GROWTH TREND"
+              trendLabel="PROFIT/LOSS"
             />
             <MetricCard 
-              title="Engine Status" 
-              value={investorProfile.autoProfitEnabled ? "OPERATIONAL" : "STATIC"} 
+              title="System Status" 
+              value={investorProfile.autoProfitEnabled ? "RUNNING" : "STATIC"} 
               icon={Zap}
             />
             <MetricCard 
-              title="Financial Ledger" 
+              title="Cash Balance" 
               value={`$${ledgerBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={History}
             />
@@ -475,10 +469,10 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
 
           <Tabs defaultValue="yield" className="space-y-6">
             <TabsList className="bg-muted/20 border-border p-1 flex-wrap h-auto">
-              <TabsTrigger value="yield" className="text-[10px] font-bold uppercase tracking-widest px-6">Yield Config</TabsTrigger>
-              <TabsTrigger value="ledger" className="text-[10px] font-bold uppercase tracking-widest px-6">Ledger Adjustments</TabsTrigger>
-              <TabsTrigger value="override" className="text-[10px] font-bold uppercase tracking-widest px-6">System Override</TabsTrigger>
-              <TabsTrigger value="assets" className="text-[10px] font-bold uppercase tracking-widest px-6">Holding Auditor</TabsTrigger>
+              <TabsTrigger value="yield" className="text-[10px] font-bold uppercase tracking-widest px-6">Earnings Settings</TabsTrigger>
+              <TabsTrigger value="ledger" className="text-[10px] font-bold uppercase tracking-widest px-6">Add/Subtract Balance</TabsTrigger>
+              <TabsTrigger value="override" className="text-[10px] font-bold uppercase tracking-widest px-6">Manual Changes</TabsTrigger>
+              <TabsTrigger value="assets" className="text-[10px] font-bold uppercase tracking-widest px-6">View Assets</TabsTrigger>
             </TabsList>
 
             <TabsContent value="yield" className="space-y-6">
@@ -486,14 +480,14 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                 <Card className="w-full border-border bg-card shadow-none overflow-hidden">
                   <CardHeader className="bg-muted/10 border-b">
                     <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 truncate">
-                      <Zap className="h-4 w-4 text-primary shrink-0" /> Algorithmic Yield Protocol
+                      <Zap className="h-4 w-4 text-primary shrink-0" /> Automatic Earnings System
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-6">
                     <div className="flex items-center justify-between gap-4">
                       <div className="space-y-0.5 min-w-0">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest truncate block">Active Status</Label>
-                        <p className="text-[9px] text-muted-foreground uppercase truncate block">Toggle trading & market movement</p>
+                        <Label className="text-[10px] font-bold uppercase tracking-widest truncate block">Status</Label>
+                        <p className="text-[9px] text-muted-foreground uppercase truncate block">Turn on/off automatic daily earnings</p>
                       </div>
                       <Switch 
                         checked={yieldConfig.enabled} 
@@ -503,7 +497,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                     </div>
                     
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest">Daily Target ($)</Label>
+                      <Label className="text-[10px] font-bold uppercase tracking-widest">Daily Earnings Target ($)</Label>
                       <Input 
                         type="number" 
                         value={yieldConfig.amount} 
@@ -513,7 +507,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                     </div>
 
                     <Button onClick={handleSaveYieldConfig} className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px]">
-                      <Save className="h-3 w-3 mr-2" /> Commit Configuration
+                      <Save className="h-3 w-3 mr-2" /> Save Settings
                     </Button>
                   </CardContent>
                 </Card>
@@ -521,14 +515,14 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                 <Card className="w-full border-border bg-card shadow-none border-dashed border-primary/30 overflow-hidden">
                   <CardHeader className="bg-primary/5 border-b border-primary/10">
                     <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-primary truncate">
-                      <Database className="h-4 w-4 shrink-0" /> Neural Asset Provisioning
+                      <Database className="h-4 w-4 shrink-0" /> Add Sample Assets
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6 space-y-4">
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-relaxed">Generate standard high-fidelity holdings based on the selected classification.</p>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-widest leading-relaxed">Add a few starting stocks or coins to this user's portfolio.</p>
                     <Button onClick={handleProvisionAssets} disabled={isProvisioning} variant="outline" className="w-full border-primary/50 text-primary hover:bg-primary/10 font-bold uppercase tracking-widest text-[10px]">
                       {isProvisioning ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Database className="h-3 w-3 mr-2" />}
-                      Provision Initial Holdings
+                      Add Starting Assets
                     </Button>
                   </CardContent>
                 </Card>
@@ -545,7 +539,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                   </CardHeader>
                   <CardContent className="pt-6 space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest">Adjustment Type</Label>
+                      <Label className="text-[10px] font-bold uppercase tracking-widest">Type</Label>
                       <Select value={newTransaction.type} onValueChange={(val) => setNewTransaction({...newTransaction, type: val})}>
                         <SelectTrigger className="bg-background border-border text-foreground">
                           <SelectValue placeholder="Select type" />
@@ -558,11 +552,11 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-widest">Valuation ($)</Label>
+                      <Label className="text-[10px] font-bold uppercase tracking-widest">Amount ($)</Label>
                       <Input type="number" value={newTransaction.amount} onChange={(e) => setNewTransaction({...newTransaction, amount: e.target.value})} className="bg-background border-border font-mono text-sm" />
                     </div>
                     <Button onClick={handleAddTransaction} className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px]">
-                      <History className="h-3 w-3 mr-2" /> Commit to Ledger
+                      <History className="h-3 w-3 mr-2" /> Add to Balance
                     </Button>
                   </CardContent>
                 </Card>
@@ -570,17 +564,17 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                 <Card className="lg:col-span-2 border-border bg-card shadow-none overflow-hidden">
                   <CardHeader className="bg-muted/10 border-b">
                     <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 truncate">
-                      <History className="h-4 w-4 shrink-0" /> Activity Logs
+                      <History className="h-4 w-4 shrink-0" /> Activity History
                     </div>
                   </CardHeader>
                   <CardContent className="p-0 overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent bg-muted/20 border-border">
-                          <TableHead className="text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Timestamp</TableHead>
-                          <TableHead className="text-[10px] uppercase font-bold h-10 whitespace-nowrap">Protocol</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Date</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold h-10 whitespace-nowrap">Type</TableHead>
                           <TableHead className="text-[10px] uppercase font-bold h-10 whitespace-nowrap">Status</TableHead>
-                          <TableHead className="text-right text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Value</TableHead>
+                          <TableHead className="text-right text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Amount</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -613,18 +607,18 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
               <Card className="border-destructive/30 bg-card shadow-none border-dashed overflow-hidden">
                 <CardHeader className="bg-destructive/10 border-b border-destructive/10">
                   <div className="text-sm font-bold uppercase tracking-widest flex items-center gap-2 text-destructive truncate">
-                    <ShieldAlert className="h-4 w-4 shrink-0" /> System Override Terminal
+                    <ShieldAlert className="h-4 w-4 shrink-0" /> Manual Balance Adjustments
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
                   <p className="text-[9px] text-muted-foreground uppercase leading-relaxed font-bold tracking-widest">
-                    Manual overrides will supersede neural calculations. Leave empty to return to deterministic tracking.
+                    Use these fields to manually set the numbers displayed to the user. Leave empty to use system defaults.
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 truncate">
-                        <History className="h-3 w-3 shrink-0" /> Manual Ledger ($)
+                        <History className="h-3 w-3 shrink-0" /> Change Cash Balance ($)
                       </Label>
                       <Input 
                         type="number" 
@@ -636,7 +630,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 truncate">
-                        <DollarSign className="h-3 w-3 shrink-0" /> Manual Total AUM ($)
+                        <DollarSign className="h-3 w-3 shrink-0" /> Change Total Balance ($)
                       </Label>
                       <Input 
                         type="number" 
@@ -648,7 +642,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 truncate">
-                        <TrendingUp className="h-3 w-3 shrink-0" /> Manual Net PnL ($)
+                        <TrendingUp className="h-3 w-3 shrink-0" /> Change Profit/Loss ($)
                       </Label>
                       <Input 
                         type="number" 
@@ -665,7 +659,7 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
                     variant="destructive"
                     className="w-full font-bold uppercase tracking-widest text-[10px] py-6 border border-destructive/50"
                   >
-                    <Unlock className="h-3.5 w-3.5 mr-2" /> Execute Security Override
+                    <Save className="h-3.5 w-3.5 mr-2" /> Save Manual Changes
                   </Button>
                 </CardContent>
               </Card>
@@ -674,15 +668,15 @@ export default function InvestorInspectPage({ params }: { params: Promise<{ inve
             <TabsContent value="assets" className="space-y-6">
               <Card className="border-border bg-card shadow-none overflow-hidden">
                 <CardHeader className="border-b bg-muted/10">
-                  <div className="text-sm font-bold uppercase tracking-widest truncate">Holding Portfolio Audit</div>
+                  <div className="text-sm font-bold uppercase tracking-widest truncate">Asset List</div>
                 </CardHeader>
                 <CardContent className="p-0 overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent bg-muted/20 border-border">
                         <TableHead className="text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Asset</TableHead>
-                        <TableHead className="text-[10px] uppercase font-bold h-10 whitespace-nowrap">Class</TableHead>
-                        <TableHead className="text-right text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Valuation</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold h-10 whitespace-nowrap">Type</TableHead>
+                        <TableHead className="text-right text-[10px] uppercase font-bold px-6 h-10 whitespace-nowrap">Value</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

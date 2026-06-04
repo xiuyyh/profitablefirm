@@ -1,4 +1,3 @@
-
 "use client";
 
 import { 
@@ -38,15 +37,15 @@ import { doc } from "firebase/firestore";
 const investorNav = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Briefcase, label: "Investments", href: "/investments" },
-  { icon: CreditCard, label: "Deposit", href: "/deposit" },
-  { icon: History, label: "Transactions", href: "/transactions" },
+  { icon: CreditCard, label: "Add Money", href: "/deposit" },
+  { icon: History, label: "History", href: "/transactions" },
   { icon: TrendingUp, label: "Performance", href: "/performance" },
 ];
 
 const adminNav = [
-  { icon: ShieldAlert, label: "System Overview", href: "/admin" },
-  { icon: Users, label: "Investor Profiles", href: "/admin" },
-  { icon: Activity, label: "Audit Logs", href: "#" },
+  { icon: ShieldAlert, label: "Overview", href: "/admin" },
+  { icon: Users, label: "User Accounts", href: "/admin" },
+  { icon: Activity, label: "System History", href: "#" },
 ];
 
 export function AppSidebar() {
@@ -74,7 +73,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-6">
         <div className="flex flex-col gap-0.5 group-data-[state=collapsed]:hidden overflow-hidden whitespace-nowrap">
           <span className="text-[10px] font-black tracking-[0.3em] text-primary/70 uppercase">
-            {isAdmin ? "Admin Terminal" : "Investor Terminal"}
+            {isAdmin ? "Admin Panel" : "User Panel"}
           </span>
           <span className="text-sm font-bold tracking-widest text-foreground uppercase">
             PROFITABLEFIRM
@@ -87,7 +86,7 @@ export function AppSidebar() {
           <div className="mb-6">
             <div className="px-2 mb-2 group-data-[state=collapsed]:hidden">
               <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-destructive">
-                Command & Control
+                Control Center
               </span>
             </div>
             <SidebarMenu>
@@ -117,7 +116,7 @@ export function AppSidebar() {
 
         <div className="px-2 mb-2 group-data-[state=collapsed]:hidden">
           <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-            Portfolio Management
+            Main Menu
           </span>
         </div>
         <SidebarMenu>
@@ -146,7 +145,7 @@ export function AppSidebar() {
         
         <div className="px-2 mb-2 group-data-[state=collapsed]:hidden">
           <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-            Security & Identity
+            Account
           </span>
         </div>
         <SidebarMenu>
@@ -154,7 +153,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild tooltip="Profile" className="text-muted-foreground hover:text-foreground h-9">
               <Link href="/profile">
                 <User className="h-4 w-4" />
-                <span className="text-[10px] font-bold uppercase tracking-tight group-data-[state=collapsed]:hidden">Access Profile</span>
+                <span className="text-[10px] font-bold uppercase tracking-tight group-data-[state=collapsed]:hidden">My Profile</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -162,7 +161,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild tooltip="Settings" className="text-muted-foreground hover:text-foreground h-9">
               <Link href="/settings">
                 <Settings className="h-4 w-4" />
-                <span className="text-[10px] font-bold uppercase tracking-tight group-data-[state=collapsed]:hidden">Config</span>
+                <span className="text-[10px] font-bold uppercase tracking-tight group-data-[state=collapsed]:hidden">Settings</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -173,7 +172,7 @@ export function AppSidebar() {
         <div className="bg-muted/30 rounded border border-border p-2 mb-4 group-data-[state=collapsed]:hidden">
           <div className="flex items-center gap-2 mb-1">
             <Lock className="h-3 w-3 text-muted-foreground" />
-            <span className="text-[8px] font-bold uppercase text-muted-foreground">Session Status</span>
+            <span className="text-[8px] font-bold uppercase text-muted-foreground">Status</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -187,7 +186,7 @@ export function AppSidebar() {
               className="w-full text-muted-foreground hover:text-destructive h-9"
             >
               <LogOut className="h-4 w-4" />
-              <span className="text-[10px] font-bold uppercase tracking-tight group-data-[state=collapsed]:hidden">Terminate Session</span>
+              <span className="text-[10px] font-bold uppercase tracking-tight group-data-[state=collapsed]:hidden">Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

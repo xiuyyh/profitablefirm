@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
@@ -35,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, doc, serverTimestamp, query } from "firebase/firestore";
+import { collection, doc, serverTimestamp } from "firebase/firestore";
 import { updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function Dashboard() {
@@ -59,7 +58,6 @@ export default function Dashboard() {
 
   const { data: profile } = useDoc(profileRef);
 
-  // TICKER NOISE CONTROLLER
   useEffect(() => {
     if (!profile?.autoProfitEnabled) {
       setMarketNoise(1);
@@ -86,7 +84,6 @@ export default function Dashboard() {
 
   const { data: rawTransactions } = useCollection(transactionsQuery);
 
-  // CLIENT-SIDE SORTING
   const investments = useMemo(() => {
     if (!rawInvestments) return null;
     return [...rawInvestments].sort((a, b) => {
@@ -105,7 +102,6 @@ export default function Dashboard() {
     });
   }, [rawTransactions]);
 
-  // LEDGER ACCOUNTING (Only completed)
   const ledgerBalance = useMemo(() => {
     const calculated = transactions?.reduce((sum, tx) => {
       if (tx.status !== 'Completed') return sum;
@@ -126,7 +122,6 @@ export default function Dashboard() {
     return assetCostBasis + netCashInjected;
   }, [investments, transactions]);
 
-  // INSTITUTIONAL MOMENTUM ENGINE
   useEffect(() => {
     if (profile?.autoProfitEnabled && !isProcessingYield && firestore && user && netExternalCapital > 0) {
       const interval = setInterval(() => {
@@ -187,7 +182,7 @@ export default function Dashboard() {
               type: 'Profit',
               amount: cumulativeProfit,
               currency: 'USD',
-              description: stepsToProcess > 1 ? `Offline Catch-up (${stepsToProcess}m)` : 'Real-Time Yield Distribution',
+              description: stepsToProcess > 1 ? `Catch-up (${stepsToProcess}m)` : 'Earnings Update',
               status: 'Completed',
               createdAt: serverTimestamp()
             });
@@ -211,7 +206,6 @@ export default function Dashboard() {
     return investments?.reduce((sum, inv) => sum + (inv.currentMarketPricePerUnit * inv.quantity), 0) || 0;
   }, [investments]);
 
-  // DETERMINISTIC EQUITY CALCULATION
   const settledEquity = profile?.manualAumOverride ?? (baseInvestmentValue + ledgerBalance);
   const totalAccountEquity = settledEquity * marketNoise;
   const netPnL = profile?.manualPnlOverride ?? (settledEquity - netExternalCapital);
@@ -237,7 +231,7 @@ export default function Dashboard() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search portfolio nodes..."
+                placeholder="Search portfolio..."
                 className="h-8 pl-8 bg-background border-border text-xs focus-visible:ring-primary rounded-none"
               />
             </div>
@@ -246,7 +240,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 mr-2">
               <div className={`h-2 w-2 rounded-full ${profile?.autoProfitEnabled ? 'bg-primary animate-pulse' : 'bg-muted'}`} />
               <span className={`text-[9px] font-bold uppercase tracking-widest ${profile?.autoProfitEnabled ? 'text-primary glow-text' : 'text-muted-foreground'}`}>
-                {profile?.autoProfitEnabled ? 'Neural Link Active' : 'Static Node'}
+                {profile?.autoProfitEnabled ? 'Trading Active' : 'Trading Paused'}
               </span>
             </div>
             <div className="h-7 w-7 rounded-sm bg-primary/10 flex items-center justify-center text-[10px] font-bold border border-primary/30 text-primary">
@@ -260,15 +254,15 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="h-4 w-4 text-primary" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Neural Investor Terminal</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Investor Dashboard</span>
               </div>
-              <h1 className="text-2xl font-black tracking-widest glow-text">PORTFOLIO INTELLIGENCE</h1>
+              <h1 className="text-2xl font-black tracking-widest glow-text">MY PORTFOLIO</h1>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard 
-              title="Total Account Equity" 
+              title="Total Balance" 
               value={`$${totalAccountEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={Number(pnlPercentage.toFixed(2))} 
               icon={DollarSign}
@@ -276,20 +270,20 @@ export default function Dashboard() {
               trendLabel="LIVE BALANCE"
             />
             <MetricCard 
-              title="Financial Ledger" 
+              title="Cash Balance" 
               value={`$${ledgerBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               icon={CreditCard}
               trendLabel="SETTLED CASH"
             />
             <MetricCard 
-              title="Net Delta (PnL)" 
+              title="Profit / Loss" 
               value={`${netPnL >= 0 ? '+' : ''}$${netPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
               trend={Number(pnlPercentage.toFixed(2))} 
               icon={TrendingUp}
               trendLabel="TOTAL GROWTH"
             />
             <MetricCard 
-              title="Accrual Velocity" 
+              title="Daily Earnings" 
               value={profile?.autoProfitEnabled ? `+$${profile.dailyProfitAmount.toFixed(2)}/day` : "OFFLINE"} 
               icon={Zap}
             />
@@ -307,13 +301,13 @@ export default function Dashboard() {
                 <div className="p-4 bg-muted/20 border border-border/10 flex flex-col items-center justify-center gap-3 text-center">
                   <Activity className={`h-8 w-8 ${profile?.autoProfitEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest">{profile?.autoProfitEnabled ? 'TRADING ACTIVE' : 'TRADING STATIC'}</p>
-                    <p className="text-[9px] text-muted-foreground uppercase mt-1">Institutional nodes processing growth steps.</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest">{profile?.autoProfitEnabled ? 'SYSTEM RUNNING' : 'SYSTEM PAUSED'}</p>
+                    <p className="text-[9px] text-muted-foreground uppercase mt-1">Smart systems are handling your growth.</p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                    <span>Engine Load</span>
+                    <span>System Load</span>
                     <span>{profile?.autoProfitEnabled ? '84%' : '0%'}</span>
                   </div>
                   <div className="h-1 bg-muted rounded-none overflow-hidden">
@@ -327,7 +321,7 @@ export default function Dashboard() {
           <Card className="border border-border bg-card shadow-none border-glow">
             <CardHeader className="flex flex-row items-center justify-between pb-4 border-b bg-muted/5">
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" /> Live Holding Auditor
+                <Activity className="h-4 w-4 text-primary" /> Current Assets
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -339,9 +333,9 @@ export default function Dashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-border bg-muted/10">
-                      <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Security</TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10">Class</TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Valuation (USD)</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Name</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] h-10">Type</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] h-10 px-6">Value (USD)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -368,7 +362,7 @@ export default function Dashboard() {
                         <TableCell colSpan={3} className="text-center py-20">
                           <div className="flex flex-col items-center gap-2 opacity-50">
                             <Terminal className="h-6 w-6" />
-                            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Zero Holdings Active</span>
+                            <span className="text-[10px] uppercase font-bold tracking-[0.2em]">No assets found</span>
                           </div>
                         </TableCell>
                       </TableRow>

@@ -5,8 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'PROFITABLEFIRM | NEURAL TERMINAL',
-  description: 'Advanced portfolio intelligence and neural market monitoring.',
+  title: 'PROFITABLEFIRM | INVESTOR DASHBOARD',
+  description: 'Smart portfolio tracking and earnings monitoring.',
 };
 
 export default function RootLayout({

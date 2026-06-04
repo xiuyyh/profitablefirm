@@ -37,8 +37,8 @@ export default function LoginPage() {
     if (user && !isUserLoading && profile) {
       if (isPending) {
         toast({
-          title: "NEURAL LINK ESTABLISHED",
-          description: isRegistering ? "Identity registered in global nodes." : "Authentication verified.",
+          title: "SUCCESSFULLY CONNECTED",
+          description: isRegistering ? "Your account is now ready." : "Login successful.",
         });
         setIsPending(false);
       }
@@ -83,7 +83,7 @@ export default function LoginPage() {
         <div className="scan-line z-20" />
         <Image 
           src="https://picsum.photos/seed/finance1/1200/800"
-          alt="Neural Interface"
+          alt="Trading Interface"
           fill
           className="object-cover opacity-40 mix-blend-luminosity grayscale"
           priority
@@ -101,28 +101,28 @@ export default function LoginPage() {
 
           <div className="space-y-6">
             <h2 className="text-5xl font-black tracking-tighter leading-none glow-text uppercase">
-              INSTITUTIONAL <br />
-              <span className="text-primary">INTELLIGENCE</span>
+              SMART <br />
+              <span className="text-primary">INVESTING</span>
             </h2>
             <p className="max-w-md text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground leading-relaxed">
-              Experience the next generation of financial monitoring. Real-time neural links, deterministic accrual, and institutional-grade auditing.
+              Discover a simpler way to grow your money. Easy tracking, real earnings, and secure management.
             </p>
             <div className="flex gap-4 pt-4">
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] font-black text-primary uppercase">Uptime</span>
-                <span className="text-lg font-mono font-bold">99.999%</span>
+                <span className="text-lg font-mono font-bold">99.9%</span>
               </div>
               <div className="h-10 w-px bg-primary/20" />
               <div className="flex flex-col gap-1">
                 <span className="text-[10px] font-black text-primary uppercase">Security</span>
-                <span className="text-lg font-mono font-bold uppercase">Level 4</span>
+                <span className="text-lg font-mono font-bold uppercase">SECURE</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 opacity-50">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            <span className="text-[9px] font-bold uppercase tracking-[0.3em]">End-to-End Neural Encryption Active</span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.3em]">Fully Secure System Active</span>
           </div>
         </div>
       </div>
@@ -143,22 +143,22 @@ export default function LoginPage() {
             <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse" />
             <CardHeader className="space-y-1 text-center bg-primary/5 border-b border-primary/10 pb-6 pt-8">
               <CardTitle className="text-xl font-black tracking-widest uppercase italic">
-                {isRegistering ? "Register Node" : "Access Terminal"}
+                {isRegistering ? "Create Account" : "Welcome Back"}
               </CardTitle>
               <CardDescription className="text-[9px] uppercase tracking-[0.3em] font-mono text-muted-foreground mt-2">
-                Identity validation required for encrypted session
+                Please log in to continue
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-8 px-8">
               <form onSubmit={handleAuth} className="space-y-5">
                 {isRegistering && (
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Identity Alias</Label>
+                    <Label htmlFor="username" className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Your Name</Label>
                     <div className="relative">
                       <UserIcon className="absolute left-3 top-3 h-4 w-4 text-primary/40" />
                       <Input
                         id="username"
-                        placeholder="e.g. USER_01"
+                        placeholder="John Doe"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className="pl-10 bg-background/50 border-primary/20 text-sm focus-visible:ring-primary font-mono rounded-none"
@@ -168,13 +168,13 @@ export default function LoginPage() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Secure Channel (Email)</Label>
+                  <Label htmlFor="email" className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-primary/40" />
                     <Input
                       id="email"
                       type="email"
-                      placeholder="protocol@firm.com"
+                      placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10 bg-background/50 border-primary/20 text-sm focus-visible:ring-primary font-mono rounded-none"
@@ -183,7 +183,7 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Access Passphrase</Label>
+                  <Label htmlFor="password" className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70 ml-1">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-primary/40" />
                     <Input
@@ -201,7 +201,7 @@ export default function LoginPage() {
                   disabled={isPending}
                   className="w-full h-12 bg-primary text-primary-foreground font-black uppercase tracking-[0.3em] hover:bg-primary/90 transition-all active:scale-95 glow-primary rounded-none mt-4"
                 >
-                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (isRegistering ? "INITIALIZE" : "AUTHENTICATE")}
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (isRegistering ? "SIGN UP" : "LOGIN")}
                 </Button>
               </form>
             </CardContent>
@@ -211,11 +211,11 @@ export default function LoginPage() {
                 disabled={isPending}
                 className="text-[9px] font-black uppercase tracking-[0.2em] text-primary hover:text-white transition-colors"
               >
-                {isRegistering ? "Return to Login" : "Initialize New Node"}
+                {isRegistering ? "Back to Login" : "Don't have an account? Sign up"}
               </button>
               <div className="flex flex-col items-center gap-2 opacity-30 px-6">
                 <p className="text-[8px] text-center leading-relaxed font-mono uppercase tracking-tighter">
-                  Authorized access only. Session monitored by global neural audit logs.
+                  Secure access only. Your session is protected by our system.
                 </p>
               </div>
             </CardFooter>
