@@ -150,14 +150,6 @@ export function AppSidebar() {
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Profile" className="text-muted-foreground hover:text-foreground h-9">
-              <Link href="/profile">
-                <User className="h-4 w-4" />
-                <span className="text-[10px] font-bold uppercase tracking-tight group-data-[state=collapsed]:hidden">My Profile</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Settings" className="text-muted-foreground hover:text-foreground h-9">
               <Link href="/settings">
                 <Settings className="h-4 w-4" />
