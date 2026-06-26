@@ -10,7 +10,9 @@ import {
   Edit3, 
   Terminal,
   Save,
-  X
+  X,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 import { 
   Card, 
@@ -36,16 +38,28 @@ import {
   DialogTitle, 
   DialogFooter 
 } from "@/components/ui/dialog";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminUsersPage() {
   const firestore = useFirestore();
+  const { user: currentUser } = useUser();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
   const [overrides, setOverrides] = useState({
     manualAumOverride: "",
     manualLedgerOverride: "",
@@ -89,6 +103,29 @@ export default function AdminUsersPage() {
       description: `New values applied for ${editingUser.email}.`,
     });
     setEditingUser(null);
+  };
+
+  const handleDeleteUser = () => {
+    if (!firestore || !userToDelete) return;
+
+    if (userToDelete.id === currentUser?.uid) {
+      toast({
+        variant: "destructive",
+        title: "Security Violation",
+        description: "You cannot terminate your own administrative session.",
+      });
+      setUserToDelete(null);
+      return;
+    }
+
+    const docRef = doc(firestore, "investorProfiles", userToDelete.id);
+    deleteDocumentNonBlocking(docRef);
+
+    toast({
+      title: "User Terminated",
+      description: `Node ${userToDelete.email} has been removed from the directory.`,
+    });
+    setUserToDelete(null);
   };
 
   return (
@@ -138,7 +175,7 @@ export default function AdminUsersPage() {
                       <TableHead className="text-[10px] uppercase font-bold tracking-widest h-12">Security Role</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-bold tracking-widest h-12">Total Balance</TableHead>
                       <TableHead className="text-right text-[10px] uppercase font-bold tracking-widest h-12">Cash Balance</TableHead>
-                      <TableHead className="w-[80px] px-6"></TableHead>
+                      <TableHead className="w-[120px] px-6"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -162,9 +199,19 @@ export default function AdminUsersPage() {
                           {u.manualLedgerOverride ? `$${u.manualLedgerOverride.toLocaleString()}` : <span className="opacity-30">AUTO</span>}
                         </TableCell>
                         <TableCell className="px-6">
-                          <Button variant="ghost" size="icon" className="h-10 w-10 text-primary hover:bg-primary/10" onClick={() => handleEdit(u)}>
-                            <Edit3 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-9 w-9 text-primary hover:bg-primary/10" onClick={() => handleEdit(u)}>
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-9 w-9 text-destructive hover:bg-destructive/10" 
+                              onClick={() => setUserToDelete(u)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -232,6 +279,33 @@ export default function AdminUsersPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+          <AlertDialogContent className="bg-card border-border rounded-none border-glow p-0 overflow-hidden">
+            <div className="h-1 w-full bg-destructive" />
+            <AlertDialogHeader className="p-8">
+              <AlertDialogTitle className="flex items-center gap-2 text-destructive uppercase tracking-widest font-black text-sm">
+                <AlertTriangle className="h-5 w-5" />
+                Terminate Account Node?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-[10px] uppercase tracking-widest leading-relaxed mt-4">
+                You are about to permanently remove <span className="text-foreground font-bold">{userToDelete?.email}</span> from the system. 
+                This action is destructive and cannot be reversed through the interface.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="p-8 bg-muted/5 border-t gap-3">
+              <AlertDialogCancel className="flex-1 border-border font-bold uppercase tracking-widest text-[10px] h-12 rounded-none">
+                Abort
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteUser}
+                className="flex-1 bg-destructive text-destructive-foreground font-bold uppercase tracking-widest text-[10px] h-12 rounded-none hover:bg-destructive/90"
+              >
+                Confirm Deletion
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SidebarInset>
     </>
   );
