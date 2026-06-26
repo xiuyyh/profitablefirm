@@ -15,7 +15,8 @@ import {
   Shield,
   Terminal,
   Zap,
-  CreditCard
+  CreditCard,
+  User as UserIcon
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { 
@@ -169,12 +170,22 @@ export default function Dashboard() {
         
         <main className="flex-1 p-6 space-y-6 w-full max-w-none">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-4">
-            <div>
+            <div className="space-y-1">
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="h-4 w-4 text-primary" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Investor Dashboard</span>
               </div>
-              <h1 className="text-2xl font-black tracking-widest glow-text uppercase">My Portfolio</h1>
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-black tracking-widest glow-text uppercase">My Portfolio</h1>
+                {profile && (
+                  <div className="flex items-center gap-2 mt-2 py-1 px-3 bg-primary/10 border border-primary/20 w-fit">
+                    <UserIcon className="h-3 w-3 text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                      WELCOME @{profile.firstName || user.email?.split('@')[0]}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

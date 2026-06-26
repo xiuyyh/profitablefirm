@@ -13,7 +13,9 @@ import {
   Info,
   ChevronRight,
   BadgeDollarSign,
-  ChevronLeft
+  ChevronLeft,
+  Copy,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +58,7 @@ export default function DepositPage() {
   const [method, setMethod] = useState("");
   const [senderAddress, setSenderAddress] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleNextStep = () => {
     if (step === 1) {
@@ -80,6 +83,16 @@ export default function DepositPage() {
       }
       setStep(3);
     }
+  };
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast({
+      title: "Address Copied",
+      description: "Wallet address has been copied to your clipboard.",
+    });
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSubmitDeposit = () => {
@@ -229,9 +242,20 @@ export default function DepositPage() {
                     </AlertDescription>
                   </Alert>
 
-                  <div className="p-4 bg-muted/20 border border-border/50 rounded-sm space-y-2">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Company {method} Address</p>
-                    <p className="text-xs font-mono break-all text-foreground select-all">{WALLETS[method as keyof typeof WALLETS]}</p>
+                  <div className="p-4 bg-muted/20 border border-border/50 rounded-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Company {method} Address</p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 text-primary hover:bg-primary/10"
+                        onClick={() => handleCopy(WALLETS[method as keyof typeof WALLETS])}
+                      >
+                        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        <span className="ml-1.5 text-[8px] font-bold uppercase">Copy</span>
+                      </Button>
+                    </div>
+                    <p className="text-xs font-mono break-all text-foreground select-all bg-background/50 p-2 border border-border/30">{WALLETS[method as keyof typeof WALLETS]}</p>
                   </div>
 
                   <div className="space-y-2">
