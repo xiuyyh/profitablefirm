@@ -13,7 +13,9 @@ import {
   CreditCard,
   ArrowUpToLine,
   ArrowDownLeft,
-  ArrowUpRight
+  ArrowUpRight,
+  MessageCircle,
+  LifeBuoy
 } from "lucide-react";
 import {
   Sidebar,
@@ -66,6 +68,9 @@ export function AppSidebar() {
     await signOut(auth);
     router.push("/login");
   };
+
+  const supportNumber = "14042792646";
+  const whatsappUrl = `https://wa.me/${supportNumber}`;
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border">
@@ -142,7 +147,20 @@ export function AppSidebar() {
 
         <SidebarSeparator className="my-6 opacity-10" />
         
+        <div className="px-2 mb-2 group-data-[state=collapsed]:hidden">
+          <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+            Assistance
+          </span>
+        </div>
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Live Support" className="text-muted-foreground hover:text-primary h-9">
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="h-4 w-4" />
+                <span className="text-[10px] font-bold uppercase tracking-tight group-data-[state=collapsed]:hidden">Live Support</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Settings" className="text-muted-foreground hover:text-foreground h-9">
               <Link href="/settings">
