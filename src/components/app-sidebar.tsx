@@ -70,7 +70,8 @@ export function AppSidebar() {
   };
 
   const supportNumber = "14042792646";
-  const whatsappUrl = `https://wa.me/${supportNumber}`;
+  const prefilledMessage = encodeURIComponent("Hello ProfitableFirm Support, I would like to inquire about my account.");
+  const whatsappUrl = `https://wa.me/${supportNumber}?text=${prefilledMessage}`;
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-border">
